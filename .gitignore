@@ -1,0 +1,7 @@
+# ignore the build directory
+build/
+
+# ignore the executable and make output
+*.list
+*.map
+*.img
