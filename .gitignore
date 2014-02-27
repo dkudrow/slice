@@ -5,3 +5,6 @@ build/
 *.list
 *.map
 *.img
+
+# ignore vim bakcup files
+.*.swp
