@@ -4,7 +4,10 @@
  * basic bitmapped terminal font
  */
 
-static int bitmap[] = {
+#define FONT_WIDTH 8
+#define FONT_HEIGHT 16
+
+static unsigned char bitmap[] = {
 
 	/* 0 -- char0 */
 	0x00, 0x00, 0x66, 0x42, 0x00, 0x42, 0x42, 0x42,

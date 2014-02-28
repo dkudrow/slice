@@ -14,7 +14,7 @@ INCLUDE = include/
 BUILD = build/
 
 CFLAGS = -I$(INCLUDE)
-LDFLAGS = --no-undefined 
+LDFLAGS = --no-undefined --section-start=.init=0x8000
 
 LINKER = kernel.ld
 
@@ -42,7 +42,7 @@ $(IMAGE): $(ELF)
 
 # build the elf file
 $(ELF): $(OBJECTS) $(LINKER)
-	$(LD) $(LDFLAGS) $(OBJECTS) -Map $(MAP) -o $@ -T $(LINKER)
+	$(LD) $(LDFLAGS) $(OBJECTS) -Map $(MAP) -o $@
 
 # build all of the c source files
 $(BUILD)%.o: $(SOURCE)%.c $(BUILD)

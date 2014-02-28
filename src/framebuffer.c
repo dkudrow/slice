@@ -10,7 +10,12 @@
 
 #include "font.h"
 
-/* aligned to 16 bytes b/c mailbox channel uses low 4 bits */
+/*
+ * The pointer we pass to the mailbox must be aligned to 16 bytes because
+ * the mailbox uses the low 4 bits of the read register to hold the
+ * channel. Since the address is a 32 bit value, we must ensure that the
+ * low 4 bits carry no information.
+ */
 struct fb_info_t fb_info __attribute__ ((aligned (16))) = {
 	.width = 1024,
 	.height = 768,
@@ -25,7 +30,7 @@ struct fb_info_t fb_info __attribute__ ((aligned (16))) = {
 };
 
 /*
- * initialize the frame buffer
+ * query the VideoCore for the framebuffer
  */
 int fb_init()
 {
@@ -68,18 +73,38 @@ int fb_test()
 }
 
 /*
+ * draw a border around the framebuffer
+ */
+int fb_border()
+{
+	int i;
+	unsigned short color = 0xFFFF;
+	unsigned addr = fb_info.fb_base_addr;
+
+	for (i=0; i<fb_info.width; i++) {
+		*((unsigned short *)addr + i) = color;;
+		*((unsigned short *)addr + fb_info.width*(fb_info.height-1) + i) = color;;
+	}
+
+	for (i=0; i<fb_info.height; i++) {
+		*((unsigned short *)addr + i*fb_info.width) = color;;
+		*((unsigned short *)addr + i*fb_info.width + fb_info.width-1) = color;;
+	}
+}
+
+/*
  * draw a single bitmapped character
  */
-int console_draw_char(unsigned x, unsigned y, unsigned c)
+int fb_draw_char(unsigned x, unsigned y, unsigned c)
 {
 	int  i, j;
 	unsigned short color = 0xFFFF;
 	unsigned addr = fb_info.fb_base_addr;
 
-	for (j=0; j<16; j++) {
-		for (i=0; i<8; i++) {
-			if (bitmap[16*c + j] & (1<<i)) {
-				*((unsigned short *)addr + (y*16+j)*fb_info.width + (x*8+i)) = color;
+	for (j=0; j<FONT_HEIGHT; j++) {
+		for (i=0; i<FONT_WIDTH; i++) {
+			if (bitmap[FONT_HEIGHT*c + j] & (128>>i)) {
+				*((unsigned short *)addr + (y*FONT_HEIGHT+j)*fb_info.width + (x*FONT_WIDTH+i)) = color;
 			}
 		}
 	}

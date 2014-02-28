@@ -24,5 +24,7 @@ struct fb_info_t {
 /* function prototypes */
 int fb_init();
 int fb_test();
+int fb_border();
+int fb_draw_char(unsigned x, unsigned y, unsigned c);
 
 #endif /* FRAMEBUFFER_H */
