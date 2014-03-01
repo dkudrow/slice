@@ -18,7 +18,9 @@
 #define MBOX_CONF		0x1C
 #define	MBOX_WRITE		0x20
 
+#define MBOX_CHAN_PWR	0x0
 #define MBOX_CHAN_FB	0x1
+#define MBOX_CHAN_USB	0x8
 #define MBOX_CHAN_MAX	0x9
 
 /* function prototypes */
