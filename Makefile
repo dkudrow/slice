@@ -2,31 +2,44 @@
 # Makefile
 #
 
-TOOLS = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi/bin/arm-bcm2708-linux-gnueabi
-CC = $(TOOLS)-gcc
-AS = $(TOOLS)-as
-LD = $(TOOLS)-ld
-OBJCOPY = $(TOOLS)-objcopy
-OBJDUMP = $(TOOLS)-objdump
+#~==== cross compilation tools for ARM ==================================~#
+ARM = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi/bin/arm-bcm2708-linux-gnueabi
+ARMCC = $(ARM)-gcc
+ARMAS = $(ARM)-as
+ARMLD = $(ARM)-ld
+OBJCOPY = $(ARM)-objcopy
+OBJDUMP = $(ARM)-objdump
 
+ARMCFLAGS = -I$(INCLUDE)
+ARMLDFLAGS = --no-undefined --section-start=.init=0x8000
+#~=======================================================================~#
+
+#~==== local compilation tools ==========================================~#
+CC = gcc
+
+CFLAGS = -g -I$(INCLUDE)
+#~=======================================================================~#
+
+#~==== source tree layout ===============================================~#
 SOURCE = src/
 INCLUDE = include/
+TEST = test/
 BUILD = build/
+#~=======================================================================~#
 
-CFLAGS = -I$(INCLUDE)
-LDFLAGS = --no-undefined --section-start=.init=0x8000
-
-LINKER = kernel.ld
-
+#~==== define objects ===================================================~#
 COBJ := $(patsubst $(SOURCE)%.c,$(BUILD)%.o,$(wildcard $(SOURCE)*.c))
 ASMOBJ := $(patsubst $(SOURCE)%.S,$(BUILD)%.o,$(wildcard $(SOURCE)*.S))
 OBJECTS := $(COBJ) $(ASMOBJ)
+#~=======================================================================~#
 
+#~==== define targets ===================================================~#
 TARGET = kernel
 ELF = $(BUILD)$(TARGET).elf
 IMAGE = $(TARGET).img
 LIST = $(TARGET).list
 MAP = $(TARGET).map
+#~=======================================================================~#
 
 all: $(IMAGE) $(LIST)
 
@@ -42,22 +55,26 @@ $(IMAGE): $(ELF)
 
 # build the elf file
 $(ELF): $(OBJECTS) $(LINKER)
-	$(LD) $(LDFLAGS) $(OBJECTS) -Map $(MAP) -o $@
+	$(ARMLD) $(ARMLDFLAGS) $(OBJECTS) -Map $(MAP) -o $@
 
 # build all of the c source files
 $(BUILD)%.o: $(SOURCE)%.c $(BUILD)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(ARMCC) $(ARMCFLAGS) -c $< -o $@
 
 # build all of the assembly source files
 $(BUILD)%.o: $(SOURCE)%.S $(BUILD)
-	$(AS) -c $< -o $@
+	$(ARMAS) -c $< -o $@
 
 # make the build directory if it doesn't exist
 $(BUILD):
 	mkdir -p $@
 
+test_console:
+	$(CC) $(CFLAGS) $(SOURCE)console.c $(TEST)framebuffer.c $(TEST)main.c -o $@
+
 clean:
-	rm -rf $(BUILD)/*
+	rm -rf $(BUILD)*
 	rm -f $(IMAGE)
 	rm -f $(LIST)
 	rm -f $(MAP)
+	rm -f test_*
