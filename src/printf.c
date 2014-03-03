@@ -25,7 +25,7 @@ static void print_u(unsigned n)
 		;
 
 	while (i < DEC_MAX)
-			putchar(48 + buf[i++]);
+			console_putc(48 + buf[i++]);
 
 }
 
@@ -38,7 +38,7 @@ static void print_i(int n)
 	int buf[DEC_MAX];
 
 	if (n < 0) {
-		putchar('-');
+		console_putc('-');
 		n *= -1;
 	}
 	for (i=1; i<=DEC_MAX; i++) {
@@ -49,7 +49,7 @@ static void print_i(int n)
 		;
 
 	while (i < DEC_MAX)
-		putchar(48 + buf[i++]);
+		console_putc(48 + buf[i++]);
 }
 
 /*
@@ -69,9 +69,9 @@ static void print_x(unsigned n)
 
 	while (i < HEX_MAX) {
 		if (buf[i] < 10)
-			putchar(48 + buf[i++]);
+			console_putc(48 + buf[i++]);
 		else
-			putchar(55 + buf[i++]);
+			console_putc(55 + buf[i++]);
 	}
 }
 
@@ -100,7 +100,7 @@ loop:
 
 				/* percent literal */
 				case '%':
-					putchar('%');
+					console_putc('%');
 					break;
 
 				/* unsigned decimal integer */
@@ -125,14 +125,14 @@ loop:
 				/* character */
 				case 'c':
 					arg_int = va_arg(args, int);
-					putchar((char)arg_int);
+					console_putc((char)arg_int);
 					break;
 
 				/* string */
 				case 's':
 					arg_s = va_arg(args, char *);
 					while (*arg_s != '\0')
-						putchar(*(arg_s++));
+						console_putc(*(arg_s++));
 					break;
 			}
 			++s;
@@ -140,7 +140,7 @@ loop:
 
 		/* normal character */
 		default:
-			putchar(*s);
+			console_putc(*s);
 			++s;
 			goto loop;
 	}
