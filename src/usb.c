@@ -20,3 +20,15 @@ usb_power_on()
 	return (ret == 0x80) ? 0 : -1;
 }
 
+/*
+ * HCD API
+ *
+ * alloc
+ * free
+ * init
+ * handle interrupt
+ * start
+ * stop
+ * hub control
+ *
+ */
