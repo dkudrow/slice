@@ -15,12 +15,10 @@ struct console_t {
 	unsigned cols;		/* number of rows */
 	unsigned cur_row;	/* current rows */
 	unsigned cur_col;	/* current columns */
-	unsigned char *cur_pos;	/* pointer to last buffered character */
-	unsigned char buf[CONSOLE_BUF_SIZE];	/* buffer input */
 };
 
 /* function prototypes */
-void console_write_str(char *str);
-void console_flush();
+void console_init();
+void console_putc(int c);
 
 #endif /* CONSOLE_H */

@@ -8,6 +8,7 @@
 #include "gpio.h"
 #include "timer.h"
 #include "framebuffer.h"
+#include "util.h"
 
 char s[] = "Greetings from the console driver!";
 
@@ -27,8 +28,19 @@ main()
 
 	timer_wait(10000000);
 
-	console_write_str(s);
-	console_flush();
+
+	console_init();
+
+	console_putc('S');
+	console_putc('l');
+	console_putc('i');
+	console_putc('c');
+	console_putc('e');
+
+	console_putc('\n');
+
+	console_putc('O');
+	console_putc('S');
 
 	error_blink();
 }

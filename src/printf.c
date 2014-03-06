@@ -1,10 +1,11 @@
 /*
  * src/printf.c
  *
- * simple printf implementation
+ * allow the kernel to print directly to the console
  */
 
 #include <stdarg.h>
+#include "console.h"
 
 #define DEC_MAX 10		/* max digitis in a decimal integer */
 #define HEX_MAX 8		/* max digitis in a hex integer */

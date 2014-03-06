@@ -8,38 +8,36 @@
 #include "framebuffer.h"
 #include "timer.h"
 
-/* TODO: hardcode the console for now */
-struct console_t console = {
-	.rows = 80,
-	.cols = 24,
-	.cur_row = 0,
-	.cur_col = 0,
-	.cur_pos = console.buf
-};
+struct console_t console;
 
 /*
- * copy a string into the console buffer
+ * initialize a console
  */
-void console_write_str(char *str)
+void console_init()
 {
-	int i = 0;
-
-	while (str[i] != '\0') {
-		*(console.cur_pos++) = str[i++];
-	}
+	console.rows = 80;
+	console.cols = 24;
+	console.cur_row = 0;
+	console.cur_col = 0;
 }
 
 /*
- * write the console buffer to the screen
+ * write one character onto the console
  */
-void console_flush()
+void console_putc(int c)
 {
-	char *p = console.buf;
-
-	while (p < console.cur_pos) {
-		//timer_wait(250000);
-		fb_draw_char(console.cur_col++, console.cur_row, *(p++));
+	switch (c) {
+		case '\n':
+			++console.cur_row;
+			console.cur_col = 0;
+			break;
+		default:
+			fb_draw_char(console.cur_col, console.cur_row, (char)c);
+			if (console.cur_col == console.cols-1) {
+				++console.cur_row;
+				console.cur_col = 0;
+			} else {
+				++console.cur_col;
+			}
 	}
-
-	console.cur_pos = console.buf;
 }
