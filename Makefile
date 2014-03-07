@@ -2,15 +2,24 @@
 # Makefile
 #
 
+#~==== source tree layout ===============================================~#
+SOURCE = src/
+INCLUDE = include/
+TEST = test/
+BUILD = build/
+#~=======================================================================~#
+
 #~==== cross compilation tools for ARM ==================================~#
-ARM = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi/bin/arm-bcm2708-linux-gnueabi
+ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi/
+ARM = $(ARMDIR)bin/arm-bcm2708-linux-gnueabi
 ARMCC = $(ARM)-gcc
 ARMAS = $(ARM)-as
 ARMLD = $(ARM)-ld
 OBJCOPY = $(ARM)-objcopy
 OBJDUMP = $(ARM)-objdump
+ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
 
-ARMCFLAGS = -I$(INCLUDE)
+ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE)
 ARMLDFLAGS = --no-undefined --section-start=.init=0x8000
 #~=======================================================================~#
 
@@ -18,13 +27,6 @@ ARMLDFLAGS = --no-undefined --section-start=.init=0x8000
 CC = gcc
 
 CFLAGS = -g -I$(INCLUDE)
-#~=======================================================================~#
-
-#~==== source tree layout ===============================================~#
-SOURCE = src/
-INCLUDE = include/
-TEST = test/
-BUILD = build/
 #~=======================================================================~#
 
 #~==== define objects ===================================================~#

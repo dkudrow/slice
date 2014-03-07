@@ -10,12 +10,13 @@
 #include "framebuffer.h"
 #include "util.h"
 
-char s[] = "Greetings from the console driver!";
+char sa[] = "Greetings from global sa[]\n";
+char *sp = "Greetings from global *sp\n";
 
 /*
  * entry point to our operating system
  */
-main()
+slice_main()
 {
 	int i, ret;
 
@@ -26,21 +27,12 @@ main()
 		error_solid();
 	}
 
-	timer_wait(10000000);
+	timer_wait(7000000);
 
 
 	console_init();
 
-	console_putc('S');
-	console_putc('l');
-	console_putc('i');
-	console_putc('c');
-	console_putc('e');
-
-	console_putc('\n');
-
-	console_putc('O');
-	console_putc('S');
+	printf("Slice OS is %u%% awesome%c\n", 101, '!');
 
 	error_blink();
 }

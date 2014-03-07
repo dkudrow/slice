@@ -16,18 +16,7 @@
  * channel. Since the address is a 32 bit value, we must ensure that the
  * low 4 bits carry no information.
  */
-struct fb_info_t fb_info __attribute__ ((aligned (16))) = {
-	.width = 1024,
-	.height = 768,
-	.virt_width = 1024,
-	.virt_height = 768,
-	.pitch = 0,
-	.bits_per_pixel = 16,
-	.x_offset = 0,
-	.y_offset = 0,
-	.fb_base_addr = 0,
-	.screen_size = 0
-};
+struct fb_info_t fb_info __attribute__ ((aligned (16)));
 
 /*
  * query the VideoCore for the framebuffer
@@ -35,6 +24,17 @@ struct fb_info_t fb_info __attribute__ ((aligned (16))) = {
 int fb_init()
 {
 	unsigned fb_addr;
+
+	fb_info.width = 1024;
+	fb_info.height = 768;
+	fb_info.virt_width = 1024;
+	fb_info.virt_height = 768;
+	fb_info.pitch = 0;
+	fb_info.bits_per_pixel = 16;
+	fb_info.x_offset = 0;
+	fb_info.y_offset = 0;
+	fb_info.fb_base_addr = 0;
+	fb_info.screen_size = 0;
 
 	/* send the framebuffer info to the GPU, don't use L1 cache */
 	mailbox_write(MBOX_CHAN_FB, (unsigned)&fb_info + MEM_ALIAS_L2_CO);

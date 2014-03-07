@@ -77,73 +77,59 @@ static void print_x(unsigned n)
 }
 
 /*
- * very basic formatted printing
+ * simple formatted printing
  */
 void printf(char *format_str, ...)
 {
 	char *s = format_str;
-	va_list args;
+	va_list arg_list;
 	int arg_int;
-	char *arg_s;
+	char *arg_str;
 
-	/* get the format arguments and set the counter */
-	va_start(args, format_str);
+	/* get the format string arguments */
+	va_start(arg_list, format_str);
 
-loop:
-	switch (*s) {
-		/* end of string */
-		case '\0':
-			break;
+	while (*s) {
+		/* print a normal character */
+		if (*s != '%') {
+			console_putc(*s++);
+			continue;
+		}
 
-		/* found a format chacter */
-		case '%':
-			switch(*(++s)) {
-
-				/* percent literal */
-				case '%':
-					console_putc('%');
-					break;
-
-				/* unsigned decimal integer */
-				case 'u':
-					arg_int = va_arg(args, int);
-					print_u(arg_int);
-					break;
-				/* decimal integer */
-				case 'i':
-				case 'd':
-					arg_int = va_arg(args, int);
-					print_i(arg_int);
-					break;
-
-				/* hex integer */
-				case 'p':
-				case 'x':
-					arg_int = va_arg(args, int);
-					print_x(arg_int);
-					break;
-
-				/* character */
-				case 'c':
-					arg_int = va_arg(args, int);
-					console_putc((char)arg_int);
-					break;
-
-				/* string */
-				case 's':
-					arg_s = va_arg(args, char *);
-					while (*arg_s != '\0')
-						console_putc(*(arg_s++));
-					break;
-			}
-			++s;
-			goto loop;
-
-		/* normal character */
-		default:
-			console_putc(*s);
-			++s;
-			goto loop;
+		++s;
+		switch (*s) {
+			case '%':
+				console_putc('%');
+				break;
+			case 'c':
+				arg_int = va_arg(arg_list, int);
+				console_putc((char)arg_int);
+				break;
+			case 'u':
+				arg_int = va_arg(arg_list, int);
+				print_u(arg_int);
+				break;
+			case 'd':
+			case 'i':
+				arg_int = va_arg(arg_list, int);
+				print_i(arg_int);
+				break;
+			case 'p':
+			case 'x':
+				arg_int = va_arg(arg_list, int);
+				print_x(arg_int);
+				break;
+			case 's':
+				arg_str = va_arg(arg_list, char *);
+				while (*arg_str)
+					console_putc(*arg_str++);
+				break;
+			case '\0':
+				console_putc('?');
+				return;
+			default:
+				console_putc('?');
+		}
+		++s;
 	}
-
 }

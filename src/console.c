@@ -15,8 +15,8 @@ struct console_t console;
  */
 void console_init()
 {
-	console.rows = 80;
-	console.cols = 24;
+	console.cols = 80;
+	console.rows = 24;
 	console.cur_row = 0;
 	console.cur_col = 0;
 }
