@@ -1,13 +1,31 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * src/console.c
  *
- * framebuffer console driver
+ * console driver
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
+ * The console driver interacts directly with the framebuffer to draw text
+ * to the screen in an organized manner. It handles text wrapping, the
+ * position of the cursor, scrolling and similar niceties.
+ *
+ * For now there is one console however there is no reason that we can add
+ * multiple virtual consoles down the line.
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
 #include "console.h"
 #include "framebuffer.h"
 #include "timer.h"
 
+/*
+ * one conosle to rule them all
+ */
 struct console_t console;
 
 /*

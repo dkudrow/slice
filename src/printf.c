@@ -1,7 +1,13 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * src/printf.c
  *
  * allow the kernel to print directly to the console
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
 #include <stdarg.h>
@@ -96,34 +102,42 @@ void printf(char *format_str, ...)
 			continue;
 		}
 
+		/* print a format string */
 		++s;
 		switch (*s) {
+			/* percent literal */
 			case '%':
 				console_putc('%');
 				break;
+			/* character */
 			case 'c':
 				arg_int = va_arg(arg_list, int);
 				console_putc((char)arg_int);
 				break;
+			/* unsigned decimal integer */
 			case 'u':
 				arg_int = va_arg(arg_list, int);
 				print_u(arg_int);
 				break;
+			/* signed decimal integer */
 			case 'd':
 			case 'i':
 				arg_int = va_arg(arg_list, int);
 				print_i(arg_int);
 				break;
+			/* unsigned hexadecimal integer */
 			case 'p':
 			case 'x':
 				arg_int = va_arg(arg_list, int);
 				print_x(arg_int);
 				break;
+			/* string */
 			case 's':
 				arg_str = va_arg(arg_list, char *);
 				while (*arg_str)
 					console_putc(*arg_str++);
 				break;
+			/* invalid format string */
 			case '\0':
 				console_putc('?');
 				return;
