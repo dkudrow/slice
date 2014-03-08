@@ -1,8 +1,26 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * src/gpio.c
  *
- * GPIO controller functions
+ * BCM2835 GPIO controller functions
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
+
+/*
+ * GPIO controller base address and register offsets
+ */
+#define GPIO_BASE		0x20200000
+
+#define GPIO_FSEL		0x0
+#define GPIO_SET		0x1C
+#define GPIO_CLR		0x28
+
+#define GPIO_MAX_PIN	53
+#define GPIO_MAX_FUNC	7
 
 #include "errno.h"
 #include "gpio.h"
@@ -19,7 +37,7 @@ int gpio_function_select(unsigned pin, unsigned function)
 		return -EINVAL;
 
 	/* make sure we are setting a valid function */
-	if (function > GPIO_MAX_FUNCTION)
+	if (function > GPIO_MAX_FUNC)
 		return -EINVAL;
 
 	/* calculate the bank and offset for the desired pin */

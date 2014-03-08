@@ -1,7 +1,42 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * src/framebuffer.c
  *
- * framebuffer
+ * BCM2835 framebuffer
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
+ * In order to write pixels to a display, we have to request a framebuffer
+ * from the VideoCore. We do this by allocating a special framebuffer info
+ * structure (defined by the VideoCore specification) and passing the
+ * address to the framebuffer's mailbox channel. The structure must be
+ * 16-byte aligned because mailbox data can only use 28 bits - the low
+ * 4 bits of the address will are clobbered by the channel field. If all
+ * goes according to plan, the VC fills in the address of the framebuffer
+ * in our structure and sends us a 0 in the mailbox. To draw a pixel on the
+ * screen we simply write the corresponding pixels in the framebuffer.
+ *
+ * Layout of the framebuffer info structure:
+ *
+ * 	offset		function
+ * 	---------------------
+ * 	0x00		Screen width
+ * 	0x04		Screen height
+ * 	0x08		Virtual width (???)
+ * 	0x0C		Virtual height (???)
+ * 	0x10		*Pitch -- the byte-length of one 'row' of the framebuffer
+ * 	0x14		Depth -- number of bits per pixel
+ * 	0x18		X offset (???)
+ * 	0x1C		Y offset (???)
+ * 	0x20		*Base address of framebuffer
+ * 	0x24		*Screen size
+ *
+ * 	*filled in by VideoCore
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
 #include "framebuffer.h"
@@ -10,12 +45,6 @@
 
 #include "font.h"
 
-/*
- * The pointer we pass to the mailbox must be aligned to 16 bytes because
- * the mailbox uses the low 4 bits of the read register to hold the
- * channel. Since the address is a 32 bit value, we must ensure that the
- * low 4 bits carry no information.
- */
 struct fb_info_t fb_info __attribute__ ((aligned (16)));
 
 /*

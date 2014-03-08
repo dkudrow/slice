@@ -1,13 +1,21 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * include/framebuffer.h
  *
- * framebuffer
+ * BCM2835 framebuffer
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
-/* framebuffer initialization data */
+/*
+ * framebuffer initialization data
+ */
 struct fb_info_t {
 	unsigned width;
 	unsigned height;
@@ -21,7 +29,9 @@ struct fb_info_t {
 	unsigned screen_size;		/* filled by GPU */
 };
 
-/* function prototypes */
+/*
+ * function prototypes
+ */
 int fb_init();
 int fb_test();
 int fb_border();

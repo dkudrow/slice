@@ -1,11 +1,64 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * src/mailbox.c
  *
- * VideoCore mailboxes
+ * BCM2835 VideoCore mailboxes
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
+ * The mailbox is the main point of communication between the ARM Core and
+ * the VideoCore. Before I go on, mailboxes are covered extensively here:
+ * https://github.com/raspberrypi/firmware/wiki/ so for a more thorough
+ * treatment look there. The mailbox contains channels that allow the ARM
+ * Core to communicate to different elements within the VC. The mailbox is
+ * laid out as follows:
+ *
+ * 	Mailbox base: 0x2000B880
+ *
+ * 	offset		function
+ * 	---------------------
+ * 	0x00		Read
+ * 	0x10		Peek
+ * 	0x14		Sender
+ * 	0x18		Status
+ * 	0x1C		Config
+ * 	0x20		Write
+ *
+ * Messages are 32 bits arranged as follows:
+ *
+ * 	---------------------------
+ * 	| 31:4 DATA | 3:0 CHANNEL |
+ * 	---------------------------
+ *
+ * Be wary when writing addresses to the mailbox - the bottom 4 bits will
+ * be clobbered by the channel so make certain that the address is aligned
+ * to a 16-byte boundary. Also, addresses are read by the VC's MMU so
+ * physical addresses must start at 0x40000000 (L2 caching enabled) or
+ * 0x80000000 (L2 caching disabled). Likewise, addresses returned by the
+ * VC must be translated back into ARM physical addresses by subtracting
+ * 0x40000000 (or 0x80000000 as the case may be).
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
 #include "errno.h"
 #include "mailbox.h"
+
+/*
+ * mailbox base address and register offsets
+ */
+#define MBOX_BASE		0x2000B880
+
+#define	MBOX_READ		0x0
+#define MBOX_POLL		0x10
+#define MBOX_SEND		0x14
+#define MBOX_STATUS		0x18
+#define MBOX_CONF		0x1C
+#define	MBOX_WRITE		0x20
+
 
 /*
  * write a message to the VideoCore mailbox
@@ -24,12 +77,11 @@ int mailbox_write(unsigned channel, unsigned message)
 	/* message takes upper 28 bits and channel takes lower 4 bits */
 	reg = (message & ~0xF) | (channel & 0xF);
 
-	/* write message to mailbox */
 	/* wait for the status register to clear for writing */
-	/* TODO this shouldn't be a bsy wait */
 	while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 31))
 		;
 
+	/* write message to mailbox */
 	*(unsigned *)(MBOX_BASE + MBOX_WRITE) = reg;
 
 	return 0;

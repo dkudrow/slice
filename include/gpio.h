@@ -1,22 +1,17 @@
-/*
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
  * include/gpio.h
  *
- * macros and functions for the GPIO controller
+ * BCM2835 GPIO controller functions
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */ 
 
 #ifndef GPIO_H
 #define GPIO_H
-
-/* regsiter addresses for GPIO controller */
-#define GPIO_BASE		0x20200000
-
-/* offsets for GPIO registers */
-#define GPIO_FSEL		0x0
-#define GPIO_SET		0x1C
-#define GPIO_CLR		0x28
-
-#define GPIO_MAX_PIN 53
-#define GPIO_MAX_FUNCTION 7
 
 /* function prototypes */
 int gpio_function_select(unsigned pin, unsigned function);
