@@ -1,22 +1,22 @@
-/******************************************************************************
-*	kernel.ld
-*	 by Alex Chadwick
-*
-*	A linker script for generation of raspberry pi kernel images.
-******************************************************************************/
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
+ * kernel.ld
+ *
+ * initialization and trampoline to OS entry
+ *
+ * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:	March 7 2014
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ */
 
-SECTIONS {
+ENTRY(handle_reset)
 
-	. = 0x8000;
-	
-	.init : { *(.init) }
-
-	.text : { *(.text) }
-
-	.rodata : { *(.rodata) }
-
-	.data : { *(.data) }
-
-	/DISCARD/ : { *(*) }
+SECTIONS
+{
+	vectors		: { *(vectors) }
+	.init	0x8000	: { *(.init) }
+	.text		: { *(.text) }
+	.data		: { *(.data) }
+	.bss		: { *(.bss) }
 }
-

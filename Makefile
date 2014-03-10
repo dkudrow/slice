@@ -19,8 +19,8 @@ OBJCOPY = $(ARM)-objcopy
 OBJDUMP = $(ARM)-objdump
 ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
 
-ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE)
-ARMLDFLAGS = --no-undefined --section-start=.init=0x8000
+ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE) -ffreestanding -nostartfiles
+ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
 #~=======================================================================~#
 
 #~==== local compilation tools ==========================================~#
