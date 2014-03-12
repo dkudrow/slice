@@ -14,7 +14,6 @@ ENTRY(handle_reset)
 
 SECTIONS
 {
-	vectors		: { *(vectors) }
 	.init	0x8000	: { *(.init) }
 	.text		: { *(.text) }
 	.data		: { *(.data) }
