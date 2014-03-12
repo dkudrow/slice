@@ -44,13 +44,17 @@
  * Because the kernel image is loaded at address 0x8000, we have to be
  * careful about how the vector table is constructed. We manage this by
  * building the vector table in the .text segment and copying it into the
- * correct location manually. Recall that ARM instructions are always 32
- * bits thus limiting immediate addressing. To get around this, we store
- * the addresses of the exception handlers in memory close to the vector
- * table and load them relative to the program counter. This way the
- * handlers are not bound to addresses that work with ARM's immediate
- * addressing scheme. We pay for this flexibility by introducing another
- * layer of indirection.
+ * correct location manually.
+ *
+ * Each entry in the vector table is a single (32 bit) instruction. This
+ * single instruction should branch to the appropriate exception handler.
+ * Because ARM instructions are fixed length, the memory we can address in
+ * immediate instructions is limited. To get around this, we store the
+ * addresses of the exception handlers in memory close to the vector table
+ * and load them relative to the program counter. This way the handlers are
+ * not bound to addresses that work with ARM's immediate addressing scheme.
+ * We pay for this flexibility by introducing another layer of
+ * indirection.
  */
 .globl vectors
 
