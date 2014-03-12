@@ -25,6 +25,18 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
+#define CPSR_MODE_USR		0x10	/* user mode mask */
+#define CPSR_MODE_FIQ		0x11	/* fiq mode mask */
+#define CPSR_MODE_IRQ		0x12	/* irq mode mask */
+#define CPSR_MODE_SVC		0x13	/* supervisor mode mask */
+#define CPSR_MODE_ABT		0x17	/* abort mode mask */
+#define CPSR_MODE_UND		0x1B	/* undefined instruction mode mask */
+#define CPSR_MODE_SYS		0x1F	/* system mode mask */
+
+#define CPSR_IRQ_MASK		0x80
+#define CPSR_FIQ_MASK		0x40
+#define CPSR_INT_MASK		0xC0
+
 /*
  * vector table
  *
@@ -97,6 +109,7 @@ vec_fiq:
 .globl handle_reset
 
 handle_reset:		/* first instruction in slice! */
+
 mov	sp, #0x8000	/* set the system stack pointer */
 
 ldr	r0, =vectors	/* address of vector table (in .text) */
