@@ -20,6 +20,7 @@ OBJDUMP = $(ARM)-objdump
 ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
 
 ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE) -ffreestanding -nostartfiles
+ARMASFLAGS =
 ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
 #~=======================================================================~#
 
@@ -65,7 +66,7 @@ $(BUILD)%.o: $(SOURCE)%.c $(BUILD)
 
 # build all of the assembly source files
 $(BUILD)%.o: $(SOURCE)%.S $(BUILD)
-	$(ARMAS) -c $< -o $@
+	$(ARMAS) $(ARMASFLAGS) -c $< -o $@
 
 # make the build directory if it doesn't exist
 $(BUILD):

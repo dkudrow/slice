@@ -25,17 +25,17 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#define CPSR_MODE_USR		0x10	/* user mode mask */
-#define CPSR_MODE_FIQ		0x11	/* fiq mode mask */
-#define CPSR_MODE_IRQ		0x12	/* irq mode mask */
-#define CPSR_MODE_SVC		0x13	/* supervisor mode mask */
-#define CPSR_MODE_ABT		0x17	/* abort mode mask */
-#define CPSR_MODE_UND		0x1B	/* undefined instruction mode mask */
-#define CPSR_MODE_SYS		0x1F	/* system mode mask */
+.set CPSR_MODE_USR,	0x10	/* user mode mask */
+.set CPSR_MODE_FIQ,	0x11	/* fiq mode mask */
+.set CPSR_MODE_IRQ,	0x12	/* irq mode mask */
+.set CPSR_MODE_SVC,	0x13	/* supervisor mode mask */
+.set CPSR_MODE_ABT,	0x17	/* abort mode mask */
+.set CPSR_MODE_UND,	0x1B	/* undefined instruction mode mask */
+.set CPSR_MODE_SYS,	0x1F	/* system mode mask */
 
-#define CPSR_ENABLE_IRQ		0x80	/* IRQ enable mask */
-#define CPSR_ENABLE_FIQ		0x40	/* FIQ enable mask */
-#define CPSR_ENABLE_INT		0xC0	/* all interrupt enable mask */
+.set CPSR_ENABLE_IRQ,	0x80	/* IRQ enable mask */
+.set CPSR_ENABLE_FIQ,	0x40	/* FIQ enable mask */
+.set CPSR_ENABLE_INT,	0xC0	/* all interrupt enable mask */
 
 /*
  * vector table
@@ -120,9 +120,10 @@ handle_reset:		/* address of first instruction in slice! */
  * Initialize the stack pointer for each processor mode. Notice that we
  * cannot enter user mode to set the user stack pointer because there would
  * be no way of returning to supervisor mode. For this reason we enter
- * system mode which shares all of its registers with user mode but
+ * system mode which shares all of its registers with user mode but is
  * privileged (allowed to modify the cpsr register) allowing us to return
- * to supervisor mode.
+ * to supervisor mode. Also notice that we must be careful to keep
+ * interrupts disabled.
  */
 ldr	sp, =0x8000	/* set supervisor mode stack pointer */
 
@@ -155,6 +156,9 @@ ldmia	r0!, {r2-r9}	/* load all vectors */
 stmia	r1!, {r2-r9}	/* copy all vectors */
 ldmia	r0!, {r2-r9}	/* load all handlers */
 stmia	r1!, {r2-r9}	/* copy all handlers */
+
+mov	r0, #CPSR_MODE_SVC&~CPSR_ENABLE_INT
+msr	cpsr, r0	/* enable interrupts and return to supervisor mode */
 
 b	slice_main	/* transfer control to OS */
 
