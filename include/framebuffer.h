@@ -35,6 +35,7 @@ struct fb_info_t {
 int fb_init();
 int fb_test();
 int fb_border();
+int fb_scroll(int rows, int y);
 int fb_draw_char(unsigned x, unsigned y, unsigned c);
 
 #endif /* FRAMEBUFFER_H */

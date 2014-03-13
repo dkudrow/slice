@@ -40,10 +40,23 @@ void console_init()
 }
 
 /*
+ * clear the screen
+ */
+void console_clear()
+{
+	fb_scroll(console.rows, console.rows);
+}
+
+/*
  * write one character onto the console
  */
 void console_putc(int c)
 {
+	if (console.cur_row == console.rows) {
+		fb_scroll(console.rows, 1);
+		--console.cur_row;
+	}
+
 	switch (c) {
 		case '\n':
 			++console.cur_row;

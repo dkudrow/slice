@@ -25,6 +25,7 @@ struct console_t {
 
 /* function prototypes */
 void console_init();
+void console_clear();
 void console_putc(int c);
 
 #endif /* CONSOLE_H */

@@ -6,16 +6,16 @@
 
 void memcpy(void *dst, void *src, unsigned size)
 {
-	int i;
+	unsigned i;
 
 	for (i=0; i<size; i++)
-		((char *)dst)[i] = ((char *)src)[i];
+		((unsigned char *)dst)[i] = ((unsigned char *)src)[i];
 }
 
-void memset(void *dst, char c, unsigned size)
+void memset(void *dst, unsigned char c, unsigned size)
 {
-	int i;
+	unsigned i;
 
 	for (i=0; i<size; i++)
-		((char *)dst)[i] = c;
+		((unsigned char *)dst)[i] = c;
 }

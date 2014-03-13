@@ -42,6 +42,7 @@
 #include "framebuffer.h"
 #include "mailbox.h"
 #include "memory.h"
+#include "util.h"
 
 #include "font.h"
 
@@ -111,14 +112,31 @@ int fb_border()
 	unsigned addr = fb_info.fb_base_addr;
 
 	for (i=0; i<fb_info.width; i++) {
-		*((unsigned short *)addr + i) = color;;
-		*((unsigned short *)addr + fb_info.width*(fb_info.height-1) + i) = color;;
+		*((unsigned short *)addr + i) = color;
+		*((unsigned short *)addr + fb_info.width*(fb_info.height-1) + i) = color;
 	}
 
 	for (i=0; i<fb_info.height; i++) {
-		*((unsigned short *)addr + i*fb_info.width) = color;;
-		*((unsigned short *)addr + i*fb_info.width + fb_info.width-1) = color;;
+		*((unsigned short *)addr + i*fb_info.width) = color;
+		*((unsigned short *)addr + i*fb_info.width + fb_info.width-1) = color;
 	}
+}
+
+/*
+ * scroll y lines
+ */
+int fb_scroll(int rows, int y)
+{
+	unsigned pitch = fb_info.pitch;
+	unsigned base = fb_info.fb_base_addr;
+	unsigned start_addr = base + y*FONT_HEIGHT*pitch;
+	unsigned end_addr = base + (rows-y)*FONT_HEIGHT*pitch;
+
+	/* shift the bottom rows-y lines to the top of the screen */
+	memcpy((void *)base, (void *)start_addr, (rows-y)*FONT_HEIGHT*pitch);
+
+	/* clear the bottom y lines */
+	memset((void *)end_addr, 0, y*FONT_HEIGHT*pitch);
 }
 
 /*

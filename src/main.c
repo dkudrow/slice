@@ -32,7 +32,10 @@ slice_main()
 
 	console_init();
 
-	printf("Slice OS is %u%% awesome%c\n", 101, '!');
+	for (i=0; i<100; i++) {
+		printf("Slice OS is %u%% awesome%c\n", 100+i, '!');
+		timer_wait(500000);
+	}
 
 	error_blink();
 }
