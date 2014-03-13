@@ -31,11 +31,13 @@ slice_main()
 
 
 	console_init();
+	printf("Console initialized, welcome to Slice.\n");
 
-	for (i=0; i<100; i++) {
-		printf("Slice OS is %u%% awesome%c\n", 100+i, '!');
-		timer_wait(500000);
-	}
+	printf("Reading exception vector table...\n");
+	for (i=0x0; i<0x20; i+=4)
+		printf("0x%x: 0x%x\n", i, *(unsigned *)i);
+
+	printf("Done.");
 
 	error_blink();
 }

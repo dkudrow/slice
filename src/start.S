@@ -33,9 +33,9 @@
 #define CPSR_MODE_UND		0x1B	/* undefined instruction mode mask */
 #define CPSR_MODE_SYS		0x1F	/* system mode mask */
 
-#define CPSR_IRQ_MASK		0x80
-#define CPSR_FIQ_MASK		0x40
-#define CPSR_INT_MASK		0xC0
+#define CPSR_ENABLE_IRQ		0x80	/* IRQ enable mask */
+#define CPSR_ENABLE_FIQ		0x40	/* FIQ enable mask */
+#define CPSR_ENABLE_INT		0xC0	/* all interrupt enable mask */
 
 /*
  * vector table
@@ -103,6 +103,8 @@ vec_fiq:
 .section .init
 
 /*
+ * reset exception handler 
+ *
  * The reset exception is the highest priority exception and is signaled
  * when the ARM Core powers up. The reset handler takes care of low-level
  * initialization tasks and so we make it the entry point to our kernel
@@ -112,16 +114,47 @@ vec_fiq:
  */
 .globl handle_reset
 
-handle_reset:		/* first instruction in slice! */
+handle_reset:		/* address of first instruction in slice! */
 
-mov	sp, #0x8000	/* set the system stack pointer */
+/*
+ * Initialize the stack pointer for each processor mode. Notice that we
+ * cannot enter user mode to set the user stack pointer because there would
+ * be no way of returning to supervisor mode. For this reason we enter
+ * system mode which shares all of its registers with user mode but
+ * privileged (allowed to modify the cpsr register) allowing us to return
+ * to supervisor mode.
+ */
+ldr	sp, =0x8000	/* set supervisor mode stack pointer */
 
+mov	r0, #CPSR_MODE_IRQ|CPSR_ENABLE_INT
+msr	cpsr, r0	/* change to IRQ mode */
+ldr	sp, =0x7000	/* set IRQ mode stack pointer */
+
+mov	r0, #CPSR_MODE_FIQ|CPSR_ENABLE_INT
+msr	cpsr, r0	/* change to FIQ mode */
+ldr	sp, =0x6000	/* set FIQ mode stack pointer */
+
+mov	r0, #CPSR_MODE_SYS|CPSR_ENABLE_INT
+msr	cpsr, r0	/* change to system mode */
+ldr	sp, =0x5000	/* set user/system mode stack pointer */
+
+mov	r0, #CPSR_MODE_UND|CPSR_ENABLE_INT
+msr	cpsr, r0	/* change to undefined instruction mode */
+ldr	sp, =0x4000	/* set undefined instruction mode stack pointer */
+
+mov	r0, #CPSR_MODE_ABT|CPSR_ENABLE_INT
+msr	cpsr, r0	/* change to abort mode */
+ldr	sp, =0x3000	/* set abort mode stack pointer */
+
+/*
+ * Copy the vector table from .text to its home at 0x0.
+ */
 ldr	r0, =vectors	/* address of vector table (in .text) */
 mov	r1, #0		/* address to which we will copy vector table (0x0) */
-ldmia	r0!, {r2, r3, r4, r5, r6, r7, r8, r9}	/* load all vectors */
-stmia	r1!, {r2, r3, r4, r5, r6, r7, r8, r9}	/* copy all vectors */
-ldmia	r0!, {r2, r3, r4, r5, r6, r7, r8, r9}	/* load all handlers */
-stmia	r1!, {r2, r3, r4, r5, r6, r7, r8, r9}	/* copy all handlers */
+ldmia	r0!, {r2-r9}	/* load all vectors */
+stmia	r1!, {r2-r9}	/* copy all vectors */
+ldmia	r0!, {r2-r9}	/* load all handlers */
+stmia	r1!, {r2-r9}	/* copy all handlers */
 
 b	slice_main	/* transfer control to OS */
 
