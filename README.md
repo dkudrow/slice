@@ -21,7 +21,7 @@ Implementing the full USB stack is somewhat involved so I am starting with the k
 This undertaking would not be possible without the vast corpus of freely available tutorials, literature, and forums online. Of particular note are:
 
 #### Technical Manuals
-* [ARM Architecture Reference Manual](http://ecee.colorado.edu/ecen3000/labs/lab3/files/DDI0419C_arm_architecture_v6m_reference_manual.pdf)
+* [ARM Architecture Reference Manual](http://infocenter.arm.com/help/topic/com.arm.doc.ddi0301h/DDI0301H_arm1176jzfs_r0p7_trm.pdf)
 * [BCM2835 Peripherals](https://www.cl.cam.ac.uk/projects/raspberrypi/tutorials/os/downloads/SoC-Peripherals.pdf)
 * [Arm System Developers Guide](http://www.amazon.com/ARM-System-Developers-Guide-Architecture/dp/1558608745)
 

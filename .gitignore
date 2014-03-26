@@ -8,3 +8,6 @@ build/
 
 # ignore vim bakcup files
 .*.swp
+
+# ignore references
+refs/

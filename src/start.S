@@ -127,23 +127,23 @@ handle_reset:		/* address of first instruction in slice! */
  */
 ldr	sp, =0x8000	/* set supervisor mode stack pointer */
 
-mov	r0, #CPSR_MODE_IRQ|CPSR_ENABLE_INT
+mov	r0, #CPSR_MODE_IRQ | CPSR_ENABLE_INT
 msr	cpsr, r0	/* change to IRQ mode */
 ldr	sp, =0x7000	/* set IRQ mode stack pointer */
 
-mov	r0, #CPSR_MODE_FIQ|CPSR_ENABLE_INT
+mov	r0, #CPSR_MODE_FIQ | CPSR_ENABLE_INT
 msr	cpsr, r0	/* change to FIQ mode */
 ldr	sp, =0x6000	/* set FIQ mode stack pointer */
 
-mov	r0, #CPSR_MODE_SYS|CPSR_ENABLE_INT
+mov	r0, #CPSR_MODE_SYS | CPSR_ENABLE_INT
 msr	cpsr, r0	/* change to system mode */
 ldr	sp, =0x5000	/* set user/system mode stack pointer */
 
-mov	r0, #CPSR_MODE_UND|CPSR_ENABLE_INT
+mov	r0, #CPSR_MODE_UND | CPSR_ENABLE_INT
 msr	cpsr, r0	/* change to undefined instruction mode */
 ldr	sp, =0x4000	/* set undefined instruction mode stack pointer */
 
-mov	r0, #CPSR_MODE_ABT|CPSR_ENABLE_INT
+mov	r0, #CPSR_MODE_ABT | CPSR_ENABLE_INT
 msr	cpsr, r0	/* change to abort mode */
 ldr	sp, =0x3000	/* set abort mode stack pointer */
 
@@ -157,7 +157,8 @@ stmia	r1!, {r2-r9}	/* copy all vectors */
 ldmia	r0!, {r2-r9}	/* load all handlers */
 stmia	r1!, {r2-r9}	/* copy all handlers */
 
-mov	r0, #CPSR_MODE_SVC&~CPSR_ENABLE_INT
+/* mov	r0, #CPSR_MODE_SVC &~ CPSR_ENABLE_INT */
+mov	r0, #CPSR_MODE_SVC & CPSR_ENABLE_INT
 msr	cpsr, r0	/* enable interrupts and return to supervisor mode */
 
 b	slice_main	/* transfer control to OS */

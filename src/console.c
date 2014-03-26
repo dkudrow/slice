@@ -34,7 +34,7 @@ struct console_t console;
 void console_init()
 {
 	console.cols = 80;
-	console.rows = 24;
+	console.rows = 40;
 	console.cur_row = 0;
 	console.cur_col = 0;
 }
