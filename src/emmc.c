@@ -10,11 +10,15 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "debug.h"
 #include "mailbox.h"
 #include "timer.h"
 
-#define EMMC_CLK_FREQ	50000000
+#ifdef DEBUG_EMMC
+#define PRINT_DEBUG
+#endif
+#include "debug.h"
+
+#define IDENT_FREQ 400000	/* clock frequency when identifying a card */
  
 /*
  * EMMC base address and registers
@@ -101,7 +105,8 @@
 #define CTRL_STABLE		0x2			/* set when internal clock is stable */
 #define CTRL_CLK_EN		0x4			/* enable the clock */
 #define CTRL_CLK_GEN	0x20		/* clock generation mode */
-#define CTRL_GEN_SHIFT	0x8			/* shift value for clock freq. divider */
+#define CLK_GEN_SHIFT	0x8			/* shift value for clock freq. */
+#define TIMEOUT_SHIFT	0x16		/* shift value for timeout clock freq. */
 
 /*
  * fields for STATUS register
@@ -109,8 +114,9 @@
 #define ST_CMD_BUSY		0x1			/* CMD line in user by prev. command */
 #define ST_DAT_BUSY		0x2			/* DAT lines in use by prev. transfer */
 #define ST_DAT_ACTIVE	0x4			/* at least 1 data line is active */
-#define ST_WRITE_RDY	0x100		/* ST is ready for a write */
-#define ST_READ_RDY		0x200		/* ST is ready for a read */
+#define ST_WRITE_RDY	0x100		/* EMMC is ready for a write */
+#define ST_READ_RDY		0x200		/* EMMC is ready for a read */
+#define ST_CARD_INS		0x10000		/* card is inserted (supported by BCM?) */
 #define ST_DAT_LO		0xF00000	/* mask DAT0 - DAT3 */
 #define ST_CMD			0x1000000	/* mask CMD */
 #define ST_DAT_HI		0x1E000000	/* mask DAT4 - DAT7 */
@@ -125,6 +131,25 @@ struct emmc_status_t {
 	unsigned cmd;
 	unsigned dat_hi;
 };
+
+/*
+ * poll a register until it times out
+ */
+int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
+{
+	int i = 0;
+
+	/* loop until the masked register equals the condition */
+	while ((*(unsigned *)reg & mask) != cond) {
+		if (i++ >= timeout)
+			return -1;
+
+		/* delay 1 ms */
+		timer_wait(1000);
+	}
+
+	return i;
+}
 
 /*
  * reset host
@@ -143,16 +168,12 @@ static int emmc_host_reset()
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	/* host will clear the reset bit when it is done */
-	while (*(unsigned *)(EMMC_CTRL1) & CTRL_RESET_ALL) {
-		/* delay 1 ms */
-		timer_wait(1000);
-
-		/* timeout after 100 ms */
-		if (i++ >= 100) {
-			error_print("EMMC reset timed out.\n");
-			return -1;
-		}
+	if (emmc_timeout(EMMC_CTRL1, CTRL_RESET_ALL, 0, 100) < 0) {
+		error_print("EMMC reset timed out.\n");
+		return -1;
 	}
+
+	debug_print(1, "EMMC reset successful.\n");
 
 	return 0;
 }
@@ -160,9 +181,9 @@ static int emmc_host_reset()
 /*
  * set clock
  */
-static int emmc_set_clock()
+static int emmc_set_clock(unsigned base, unsigned freq)
 {
-	unsigned reg;
+	unsigned reg, div;
 	int i = 0;
 
 	debug_print(1, "Entering emmc_set_clock().\n");
@@ -173,29 +194,42 @@ static int emmc_set_clock()
 	debug_print(1, "Writing 0x%x to CTRL1 (disable clock).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
+	/* approximate the desired clock frequency */
+	div = 0;
+	while (freq < base) {
+		++div;
+		base /= 2;
+	}
+	debug_print(1, "Freq. divider = %u, freq. ~ %u.\n", div, base / (1 << div));
+
 	/* set the clock frequency in 'divided clock' mode */
 	reg &= ~CTRL_CLK_GEN;
-	/* freq. is MAX / N */
-	reg |= (0x5 << CTRL_GEN_SHIFT);
+	reg |= div << CLK_GEN_SHIFT;
 
-	/* write parameters */
+	/* hardcode the timeout frequency */
+	/* TODO: recalculate based on clock */
+	reg |= 0x7 << TIMEOUT_SHIFT;
+
+	/* write clock parameters to EMMC */
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
-	/* enable clock */
-	reg |= CTRL_CLK_EN;
-	debug_print(1, "Writing 0x%x to CTRL1 (enable clock).\n", reg);
+	/* enable internal clock */
+	reg |= CTRL_INTCLK_EN;
+	debug_print(1, "Writing 0x%x to CTRL1 (enable internal clock).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	/* host will set the stable bit when the clock is ready */
-	while (!((*(unsigned *)(EMMC_CTRL1)) & CTRL_STABLE)) {
-		/* timeout after 100 ms */
-		if (i++ >= 100) {
-			error_print("EMMC clock did not stabilize.\n");
-			return -1;
-		}
-
-		timer_wait(1000);
+	if (emmc_timeout(EMMC_CTRL1, CTRL_STABLE, CTRL_STABLE, 1000) < 0) {
+		error_print("EMMC clock did not stabilize.\n");
+		return -1;
 	}
+
+	debug_print("EMMC clock is stable.\n");
+
+	/* enable clock on the bus */
+	reg = *(unsigned *)(EMMC_CTRL1);
+	reg |= CTRL_CLK_EN;
+	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	return 0;
 }
@@ -280,19 +314,28 @@ unsigned emmc_get_clock_rate()
  */
 int emmc_init()
 {
-	unsigned max_clock;
+	unsigned reg, base_freq;
 
 	debug_print(1, "Entering emmc_init().\n");
 
 	/* get the EMMC clock base rate */
 	if (emmc_get_clock_state() != 0)
 		return -1;
-	max_clock = emmc_get_clock_rate();
+	base_freq = emmc_get_clock_rate();
 
+	/* reset the EMMC */
 	emmc_host_reset();
-	emmc_dump_registers();
-	emmc_set_clock();
-	emmc_dump_registers();
+
+	/* check whether a card is present */
+	if (emmc_timeout(EMMC_STATUS, ST_CARD_INS, ST_CARD_INS, 100) < 0) {
+		error_print("EMMC did not detect SD card.\n");
+		return -1;
+	}
+
+	/* TODO: clear CTRL2? */
+
+	/* set the clock */
+	emmc_set_clock(base_freq, IDENT_FREQ);
 }
 
 /*
