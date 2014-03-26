@@ -8,6 +8,10 @@
  * Date:	March 7 2014
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
+ * This is the driver for the Raspberry Pi's EMMC and is based on the
+ * Simplified SDHCI 3.0 specification.
+ *
  */
 
 #include "mailbox.h"
@@ -22,38 +26,42 @@
  
 /*
  * EMMC base address and registers
+ *
+ * Although the SDHCI specification defines half-word registers, the
+ * BCM2835 can only access word sized registers. This why some registers
+ * defined below seem to handle two unrelated tasks. Also bitmasks are fun!
  */
 #define EMMC_BASE		0x20300000
 
-#define EMMC_ARG2		EMMC_BASE + 0x0
-#define EMMC_BLKSIZCNT	EMMC_BASE + 0x4
-#define EMMC_ARG1		EMMC_BASE + 0x8
-#define EMMC_CMDTM		EMMC_BASE + 0xC
-#define EMMC_RESP0		EMMC_BASE + 0x10
-#define EMMC_RESP1		EMMC_BASE + 0x14
-#define EMMC_RESP2		EMMC_BASE + 0x18
-#define EMMC_RESP3		EMMC_BASE + 0x1C
-#define EMMC_DATA		EMMC_BASE + 0x20
-#define EMMC_STATUS		EMMC_BASE + 0x24
-#define EMMC_CTRL0		EMMC_BASE + 0x28
-#define EMMC_CTRL1		EMMC_BASE + 0x2C
-#define EMMC_INT_FLAG	EMMC_BASE + 0x30
-#define EMMC_INT_MASK	EMMC_BASE + 0x34
-#define EMMC_INT_ENBL	EMMC_BASE + 0x38
-#define EMMC_CTRL2		EMMC_BASE + 0x3C
-#define EMMC_FORCE_INT	EMMC_BASE + 0x50
-#define EMMC_TIMEOUT	EMMC_BASE + 0x70
-#define EMMC_DBG		EMMC_BASE + 0x74
-#define EMMC_FIFO_CFG	EMMC_BASE + 0x80
-#define EMMC_FIFO_EN	EMMC_BASE + 0x84
-#define EMMC_TUNE_STEP	EMMC_BASE + 0x88
-#define EMMC_TUNE_STD	EMMC_BASE + 0x8C
-#define EMMC_TUNE_DDR	EMMC_BASE + 0x90
-#define EMMC_INT_SPI	EMMC_BASE + 0xF0
-#define EMMC_SLOT_VER		EMMC_BASE + 0xFC
+#define EMMC_ARG2		EMMC_BASE+0x0
+#define EMMC_BLKSIZCNT	EMMC_BASE+0x4
+#define EMMC_ARG1		EMMC_BASE+0x8
+#define EMMC_CMDTM		EMMC_BASE+0xC
+#define EMMC_RESP0		EMMC_BASE+0x10
+#define EMMC_RESP1		EMMC_BASE+0x14
+#define EMMC_RESP2		EMMC_BASE+0x18
+#define EMMC_RESP3		EMMC_BASE+0x1C
+#define EMMC_DATA		EMMC_BASE+0x20
+#define EMMC_STATUS		EMMC_BASE+0x24	/* current status of the EMMC */
+#define EMMC_CTRL0		EMMC_BASE+0x28
+#define EMMC_CTRL1		EMMC_BASE+0x2C	/* clock and reset controls for EMMC */
+#define EMMC_INT_FLAG	EMMC_BASE+0x30
+#define EMMC_INT_MASK	EMMC_BASE+0x34
+#define EMMC_INT_ENBL	EMMC_BASE+0x38
+#define EMMC_CTRL2		EMMC_BASE+0x3C
+#define EMMC_FORCE_INT	EMMC_BASE+0x50
+#define EMMC_TIMEOUT	EMMC_BASE+0x70
+#define EMMC_DBG		EMMC_BASE+0x74
+#define EMMC_FIFO_CFG	EMMC_BASE+0x80
+#define EMMC_FIFO_EN	EMMC_BASE+0x84
+#define EMMC_TUNE_STEP	EMMC_BASE+0x88
+#define EMMC_TUNE_STD	EMMC_BASE+0x8C
+#define EMMC_TUNE_DDR	EMMC_BASE+0x90
+#define EMMC_INT_SPI	EMMC_BASE+0xF0
+#define EMMC_SLOT_VER	EMMC_BASE+0xFC	/* slot status and version info */
 
 /*
- * EMMC commands (defined by the MMCA 4.4 specification)
+ * MMC/SD commands (defined by MMCA 4.4 and SDHCI 3.0)
  */
 #define GO_IDLE_STATE			0	/* reset the card to idle state */
 #define SEND_OP_COND			1	/* get OCR register from card */
@@ -69,7 +77,7 @@
 #define	SD_APP_OP_COND			41	/* get OCR register from SD card */
 
 /*
- * fields for CMDTM register
+ * bitmasks for the CMDTM register
  */
 #define TM_BLKCNT	0x2			/* enable block counter */
 #define TM_AUTOCMD	0xC			/* mask automatic commands */
@@ -95,7 +103,7 @@
 #define CMD_SHIFT(x) (x << 24)	/* shift command to correct possition */
 
 /*
- * Host controls fields
+ * bitmasks for the control registers
  */
 #define CTRL_RESET_ALL	0x1000000	/* reset complete host circuit */
 #define CTRL_RESET_CMD	0x2000000	/* reset command circuit */
@@ -109,7 +117,7 @@
 #define TIMEOUT_SHIFT	0x16		/* shift value for timeout clock freq. */
 
 /*
- * fields for STATUS register
+ * bitmasks for the status register
  */
 #define ST_CMD_BUSY		0x1			/* CMD line in user by prev. command */
 #define ST_DAT_BUSY		0x2			/* DAT lines in use by prev. transfer */
@@ -121,19 +129,8 @@
 #define ST_CMD			0x1000000	/* mask CMD */
 #define ST_DAT_HI		0x1E000000	/* mask DAT4 - DAT7 */
 
-struct emmc_status_t {
-	unsigned cmd_busy;
-	unsigned dat_busy;
-	unsigned dat_active;
-	unsigned write_rdy;
-	unsigned read_rdy;
-	unsigned dat_lo;
-	unsigned cmd;
-	unsigned dat_hi;
-};
-
 /*
- * poll a register until it times out
+ * busy wait until (reg & mask) == cond or timeout ms have passed
  */
 int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
 {
@@ -152,7 +149,7 @@ int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
 }
 
 /*
- * reset host
+ * EMMC software reset
  */
 static int emmc_host_reset()
 {
@@ -339,48 +336,28 @@ int emmc_init()
 }
 
 /*
- * read STATUS register
- */
-unsigned emmc_get_status(struct emmc_status_t *status)
-{
-	unsigned reg = *(unsigned *)(EMMC_BASE + EMMC_STATUS);
-
-	printf("STATUS: 0x%x\n", reg);
-
-	if (status) {
-		status->cmd_busy = reg & ST_CMD_BUSY;
-		status->dat_busy = reg & ST_DAT_BUSY;
-		status->dat_active = reg & ST_DAT_ACTIVE;
-		status->write_rdy = reg & ST_WRITE_RDY;
-		status->read_rdy = reg & ST_READ_RDY;
-		status->dat_lo = (reg & ST_DAT_LO) >> 20;
-		status->cmd = (reg & ST_CMD) >> 24;
-		status->dat_hi = (reg & ST_DAT_HI) >> 25;
-	}
-
-	return reg;
-}
-
-/*
- * dump the contents of the STATUS register
+ * dump the EMMC STATUS register
  */
 void emmc_dump_status()
 {
-	struct emmc_status_t status;
+	unsigned reg;
 
-	emmc_get_status(&status);
+	reg = *(unsigned *)(EMMC_STATUS);
 
-	printf("CMD: %x, DAT[0:3]: %x, DAT[4:7]: %x\n", status.cmd, status.dat_lo, status.dat_hi);
-	printf("write ready: %u, read ready: %u\n", status.write_rdy, status.read_rdy);
-	printf("cmd busy: %u, dat busy: %u, dat active: %u\n", status.cmd_busy, status.dat_busy, status.dat_active);
+	printf("CMD: %x, DAT[0:3]: %x, DAT[4:7]: %x\n", reg&ST_CMD, reg&ST_DAT_LO,
+			reg&ST_DAT_HI);
+	printf("write ready: %u, read ready: %u\n", reg&ST_WRITE_RDY,
+			reg&ST_READ_RDY);
+	printf("cmd busy: %u, dat busy: %u, dat active: %u\n", reg&ST_CMD_BUSY,
+			reg&ST_DAT_BUSY, reg&ST_DAT_ACTIVE);
 }
 
 /*
- * dump registers
+ * dump all EMMC registers
  */
 emmc_dump_registers()
 {
-	printf("$>===== EMMC REGISTER DUMP =====<$\n");
+	printf("$>~~~~~ EMMC REGISTER DUMP ~~~~~<$\n");
 
 	printf("ARG2: %x, BLKSIZCNT: %x, ARG1: %x, CMDTM: %x\n",
 			*(unsigned *)(EMMC_ARG2), *(unsigned *)(EMMC_BLKSIZCNT),
