@@ -1,7 +1,7 @@
 /*
- * src/debug.c
+ * src/led.c
  *
- * some simple LED patters for debugging until the console works
+ * some simple LED patterns for debugging until the console works
  */
 
 #include "gpio.h"

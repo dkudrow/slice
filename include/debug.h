@@ -2,19 +2,40 @@
  *
  * include/debug.h
  *
- * some simple LED patters for debugging until the console works
+ * Kernel print messages
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
- * Date:	March 7 2014
+ * Date:	March 26 2014
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#ifndef DEBUG_H
-#define DEBUG_H
+/*
+ * Debug print levels:
+ * 1: function calls
+ */
+#ifdef PRINT_DEBUG
+#define debug_print(level, ...)\
+	if (level > DEBUG_LEVEL) {\
+		printf("DEBUG: ");\
+		printf(__VA_ARGS__);\
+	}
+#else
+#define debug_print(...)
+#endif
 
-/* function prototypes */
-void error_blink();
-void error_solid();
+#ifdef PRINT_WARN
+#define warn_print(...)\
+	printf("WARN: ");\
+	printf(__VA_ARGS__);
+#else
+#define warn_print(...)
+#endif
 
-#endif /* DEBUG_H */
+#ifdef PRINT_ERROR
+#define error_print(...)\
+	printf("ERROR: ");\
+	printf(__VA_ARGS__);
+#else
+#define error_print(...)
+#endif

@@ -10,7 +10,9 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
+#include "debug.h"
 #include "mailbox.h"
+#include "timer.h"
 
 #define EMMC_CLK_FREQ	50000000
  
@@ -132,10 +134,12 @@ static int emmc_host_reset()
 	unsigned reg;
 	int i = 0;
 
+	debug_print(1, "Entered emmc_host_reset().\n");
+
 	/* set the software reset bits */
 	reg = *(unsigned *)(EMMC_CTRL1);
 	reg |= CTRL_RESET_ALL;
-	printf("CTRL1: 0x%x\n", reg);
+	debug_print(1, "Writing 0x%x to CTRL1 (software reset).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	/* host will clear the reset bit when it is done */
@@ -145,7 +149,7 @@ static int emmc_host_reset()
 
 		/* timeout after 100 ms */
 		if (i++ >= 100) {
-			printf("Error: EMMC reset timed out\n");
+			error_print("EMMC reset timed out.\n");
 			return -1;
 		}
 	}
@@ -161,15 +165,16 @@ static int emmc_set_clock()
 	unsigned reg;
 	int i = 0;
 
+	debug_print(1, "Entering emmc_set_clock().\n");
+
 	/* turn off the clock */
 	reg = *(unsigned *)(EMMC_CTRL1);
 	reg &= ~CTRL_CLK_MASK;
-	printf("Turning off clock: 0x%x\n", reg);
+	debug_print(1, "Writing 0x%x to CTRL1 (disable clock).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	/* set the clock frequency in 'divided clock' mode */
-	/*reg &= ~CTRL_CLK_GEN;*/
-	reg |= CTRL_CLK_GEN;
+	reg &= ~CTRL_CLK_GEN;
 	/* freq. is MAX / N */
 	reg |= (0x5 << CTRL_GEN_SHIFT);
 
@@ -178,14 +183,14 @@ static int emmc_set_clock()
 
 	/* enable clock */
 	reg |= CTRL_CLK_EN;
-	printf("Enabling clock: 0x%x\n", reg);
+	debug_print(1, "Writing 0x%x to CTRL1 (enable clock).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	/* host will set the stable bit when the clock is ready */
 	while (!((*(unsigned *)(EMMC_CTRL1)) & CTRL_STABLE)) {
 		/* timeout after 100 ms */
 		if (i++ >= 100) {
-			printf("Error: EMMC clock did not stabilize.\n");
+			error_print("EMMC clock did not stabilize.\n");
 			return -1;
 		}
 
@@ -201,6 +206,8 @@ static int emmc_set_clock()
 unsigned emmc_get_clock_state()
 {
 	unsigned buf[8] __attribute__ ((aligned (16)));
+
+	debug_print(1, "Entering emmc_get_clock_state().\n")
 
 	/* property tag buffer */
 	buf[0] = 32;		/* size of buffer */
@@ -219,10 +226,15 @@ unsigned emmc_get_clock_state()
 	mailbox_read(MBOX_CHAN_PROP, buf);
 
 	if (buf[1] != MBOX_PROP_OK) {
-		printf("Error: bad response from mailbox.\n");
+		error_print("Bad response from mailbox.\n");
+		return -1;
+	} else if (buf[6] & 2) {
+		error_print("EMMC clock not found.\n");
+		return -1;
+	} else if (!(buf[6] & 1)) {
+		error_print("EMMC clock not on.\n");
 		return -1;
 	}
-	printf("Clock %s and is %s.\n", buf[6]&2?"does not exist":"exists", buf[6]&1?"on":"off");
 
 	return 0;
 }
@@ -251,10 +263,14 @@ unsigned emmc_get_clock_rate()
 	mailbox_read(MBOX_CHAN_PROP, buf);
 
 	if (buf[1] != MBOX_PROP_OK) {
-		printf("Error: bad response from mailbox.\n");
+		error_print("Bad response from mailbox.\n");
+		return 0;
+	} else if (buf[6] == 0) {
+		error_print("EMMC clock not found.\n");
 		return 0;
 	}
-	printf("Clock rate is %u Hz.\n", buf[6]);
+
+	debug_print(1, "EMMC clock rate is %u Hz.\n", buf[6]);
 
 	return buf[6];
 }
@@ -262,16 +278,19 @@ unsigned emmc_get_clock_rate()
 /*
  * initialize EMMC host
  */
-void emmc_init()
+int emmc_init()
 {
+	unsigned max_clock;
 
-	emmc_get_clock_state();
-	emmc_get_clock_rate();
+	debug_print(1, "Entering emmc_init().\n");
 
-	printf("Calling emmc_host_reset()...\n");
+	/* get the EMMC clock base rate */
+	if (emmc_get_clock_state() != 0)
+		return -1;
+	max_clock = emmc_get_clock_rate();
+
 	emmc_host_reset();
 	emmc_dump_registers();
-	printf("Calling emmc_set_clock()...\n");
 	emmc_set_clock();
 	emmc_dump_registers();
 }

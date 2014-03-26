@@ -6,9 +6,10 @@
 
 #include "debug.h"
 #include "emmc.h"
-#include "gpio.h"
-#include "timer.h"
 #include "framebuffer.h"
+#include "gpio.h"
+#include "led.h"
+#include "timer.h"
 #include "util.h"
 
 char sa[] = "Greetings from global sa[]\n";
