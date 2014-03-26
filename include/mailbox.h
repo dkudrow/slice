@@ -21,6 +21,9 @@
 #define MBOX_CHAN_PROP	0x8
 #define MBOX_CHAN_MAX	0x9
 
+#define MBOX_PROP_OK	0x80000000
+#define MBOX_PROP_ERR	0x80000001
+
 /*
  * function prototypes
  */
