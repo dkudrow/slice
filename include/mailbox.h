@@ -18,6 +18,7 @@
  */
 #define MBOX_CHAN_PWR	0x0
 #define MBOX_CHAN_FB	0x1
+#define MBOX_CHAN_PROP	0x8
 #define MBOX_CHAN_MAX	0x9
 
 /*
