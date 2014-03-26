@@ -24,6 +24,7 @@ This undertaking would not be possible without the vast corpus of freely availab
 * [ARM Architecture Reference Manual](http://infocenter.arm.com/help/topic/com.arm.doc.ddi0301h/DDI0301H_arm1176jzfs_r0p7_trm.pdf)
 * [BCM2835 Peripherals](https://www.cl.cam.ac.uk/projects/raspberrypi/tutorials/os/downloads/SoC-Peripherals.pdf)
 * [Arm System Developers Guide](http://www.amazon.com/ARM-System-Developers-Guide-Architecture/dp/1558608745)
+* [MMC 4.4 Specification](http://www.jedec.org/standards-documents/docs/jesd-84-a44)
 
 #### Tutorials
 * [Baking Pi Tutorial](https://www.cl.cam.ac.uk/projects/raspberrypi/tutorials/os/)
