@@ -5,12 +5,19 @@
  * BCM2835 external mass media controller
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
- * Date:	March 7 2014
+ * Date:	March 23 2014
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
- * This is the driver for the Raspberry Pi's EMMC and is based on the
- * Simplified SDHCI 3.0 specification.
+ * The Raspberry Pi's external mass media controller implements the MMCA
+ * 4.4 and SDHCI 3.0 specifications but this driver focuses on supporting
+ * SD (mostly because I don't have an MMC card).
+ *
+ * The (SD) host controller must be reset and initialized at start up and
+ * each time a card is inserted. We have to:
+ * 	1. clear the host and card registers
+ * 	2. configure and enable the clock
+ * 	3. enable interrupts
  *
  */
 
@@ -22,7 +29,7 @@
 #endif
 #include "debug.h"
 
-#define IDENT_FREQ 400000	/* clock frequency when identifying a card */
+#define IDENT_FREQ 400000	/* clock frequency during initialization */
  
 /*
  * EMMC base address and registers
@@ -45,9 +52,9 @@
 #define EMMC_STATUS		EMMC_BASE+0x24	/* current status of the EMMC */
 #define EMMC_CTRL0		EMMC_BASE+0x28
 #define EMMC_CTRL1		EMMC_BASE+0x2C	/* clock and reset controls for EMMC */
-#define EMMC_INT_FLAG	EMMC_BASE+0x30
-#define EMMC_INT_MASK	EMMC_BASE+0x34
-#define EMMC_INT_ENBL	EMMC_BASE+0x38
+#define EMMC_INTERRUPT	EMMC_BASE+0x30	/* status of EMMC interrupts */
+#define EMMC_INT_MASK	EMMC_BASE+0x34	/* event signals INTERRUPT register */
+#define EMMC_INT_ENBL	EMMC_BASE+0x38	/* event signals ARM IRQ vector */
 #define EMMC_CTRL2		EMMC_BASE+0x3C
 #define EMMC_FORCE_INT	EMMC_BASE+0x50
 #define EMMC_TIMEOUT	EMMC_BASE+0x70
@@ -100,7 +107,7 @@
 #define CMD_ABORT	0xC00000	/* abort prev. transfer */
 #define CMD_INDEX	0x1F00000	/* command index */
 
-#define CMD_SHIFT(x) (x << 24)	/* shift command to correct possition */
+#define CMD_SHIFT(x) (x << 24)	/* shift value for command index */
 
 /*
  * bitmasks for the control registers
@@ -130,7 +137,29 @@
 #define ST_DAT_HI		0x1E000000	/* mask DAT4 - DAT7 */
 
 /*
- * busy wait until (reg & mask) == cond or timeout ms have passed
+ * bitmasks for the interrupt registers
+ */
+#define INT_CMD_DONE	0x1			/* command has finished */
+#define INT_DAT_DONE	0x2			/* transfer has finished */
+#define INT_BLK_GAP		0x4			/* transfer stopped at block gap */
+#define INT_WR_READY	0x10		/* DATA register ready for writing */
+#define INT_RD_READY	0x20		/* DATA register ready for reading */
+#define INT_CARD		0x100		/* card made interrupt request */
+#define INT_RETUNE		0x1000		/* clock retune request */
+#define INT_BOOTACK		0x2000		/* boot acknowledge recieved */
+#define INT_ENDBOOT		0x4000		/* boot operation has ended */
+#define INT_CTO_ERR		0x10000		/* timeout on CMD */
+#define INT_CCRC_ERR	0x20000		/* CRC error on CMD */
+#define INT_CEND_ERR	0x40000		/* end bit on CMD not 1 */
+#define INT_CBAD_ERR	0x80000		/* wrong command index in response */
+#define INT_DTO_ERR		0x100000	/* timeout on DAT */
+#define INT_DCRC_ERR	0x200000	/* CRC error on DAT */
+#define INT_DEND_ERR	0x400000	/* end bit on DAT not 1 */
+#define INT_ACMD_ERR	0x1000000	/* auto command error */
+#define INT_MASK_ALL	0x017F7137	/* mask all supported interrupts */
+
+/*
+ * busy wait with timeout (in ms)
  */
 int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
 {
@@ -176,7 +205,7 @@ static int emmc_host_reset()
 }
 
 /*
- * set clock
+ * set EMMC clock frequency
  */
 static int emmc_set_clock(unsigned base, unsigned freq)
 {
@@ -226,6 +255,7 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	/* enable clock on the bus */
 	reg = *(unsigned *)(EMMC_CTRL1);
 	reg |= CTRL_CLK_EN;
+	debug_print(1, "Writing 0x%x to CTRL1 (enable bus clock).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	return 0;
@@ -267,6 +297,8 @@ unsigned emmc_get_clock_state()
 		return -1;
 	}
 
+	debug_print(1, "EMMC clock is on.\n")
+
 	return 0;
 }
 
@@ -276,6 +308,8 @@ unsigned emmc_get_clock_state()
 unsigned emmc_get_clock_rate()
 {
 	unsigned buf[8] __attribute__ ((aligned (16)));
+
+	debug_print(1, "Entering emmc_get_clock_rate().\n")
 
 	/* property tag buffer */
 	buf[0] = 32;		/* size of buffer */
@@ -333,6 +367,19 @@ int emmc_init()
 
 	/* set the clock */
 	emmc_set_clock(base_freq, IDENT_FREQ);
+
+	/* clear interrupt status register */
+	reg = 0xFFFFFFFF;
+	*(unsigned *)(EMMC_INTERRUPT) = reg;
+
+	/* do not send interrupts to the ARM core */
+	reg = 0;
+	*(unsigned *)(EMMC_INT_ENBL) = reg;
+
+	/* send interrupts to the INTERRUPT register */
+	reg = INT_MASK_ALL;
+	*(unsigned *)(EMMC_INT_MASK);
+
 }
 
 /*
@@ -372,7 +419,7 @@ emmc_dump_registers()
 			*(unsigned *)(EMMC_CTRL0), *(unsigned *)(EMMC_CTRL1));
 
 	printf("INT_FLAG: %x, INT_MASK: %x, INT_ENBL: %x, CTRL2: %x\n",
-			*(unsigned *)(EMMC_INT_FLAG), *(unsigned *)(EMMC_INT_MASK),
+			*(unsigned *)(EMMC_INTERRUPT), *(unsigned *)(EMMC_INT_MASK),
 			*(unsigned *)(EMMC_INT_ENBL), *(unsigned *)(EMMC_CTRL2));
 
 	printf("FORCE_INT: %x, TIMEOUT: %x, DBG: %x, FIFO_CFG: %x\n",

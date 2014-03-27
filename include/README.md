@@ -8,6 +8,8 @@ is online.
 
 *include/errno.h* -- error codes.
 
+*include/emmc.h* -- SD/MMC card functions prototypes.
+
 *include/font.h* -- simple bitmapped font for the console.
 
 *include/framebuffer.h* -- framebuffer info structure and function

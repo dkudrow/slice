@@ -15,6 +15,9 @@ the VideoCore. Facilitates communication with on-chip peripherals.
 
 *src/gpio.c* -- Interface to the BCM2835 GPIO controller.
 
+*src/emmc.c* -- Interface to the BCM2835 EMMC (external mass media
+controller)
+
 *src/framebuffer.c* -- Interface to the GPU framebuffer.
 
 *src/console.c* -- Console driver, built around the framebuffer interface.
@@ -23,8 +26,8 @@ the VideoCore. Facilitates communication with on-chip peripherals.
 
 *src/memory_utils.c* -- Memory utilities.
 
-*src/debug.c* -- Some routines to control the BCM2835 LED's. Handy for
-debugging without before the framebuffer is online.
+*src/led.c* -- Some routines to control the BCM2835 LED's. Handy for
+debugging before the framebuffer is online.
 
 *src/keyboard.c* -- Incomplete.
 
