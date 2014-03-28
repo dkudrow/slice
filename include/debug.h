@@ -10,13 +10,17 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
+#ifndef DEBUG_LEVEL
+#define DEBUG_LEVEL 1
+#endif
+
 /*
  * Debug print levels:
  * 1: function calls
  */
 #ifdef PRINT_DEBUG
 #define debug_print(level, ...)\
-	if (level > DEBUG_LEVEL) {\
+	if (level >= DEBUG_LEVEL) {\
 		printf("DEBUG: ");\
 		printf(__VA_ARGS__);\
 	}

@@ -29,7 +29,7 @@ slice_main()
 		error_solid();
 	}
 
-	/* timer_wait(7000000); */
+	timer_wait(3000000); 
 
 
 	console_init();

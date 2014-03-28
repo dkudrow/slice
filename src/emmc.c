@@ -23,6 +23,7 @@
 
 #include "mailbox.h"
 #include "timer.h"
+#include "util.h"
 
 #ifdef DEBUG_EMMC
 #define PRINT_DEBUG
@@ -121,7 +122,7 @@
 #define CTRL_CLK_EN		0x4			/* enable the clock */
 #define CTRL_CLK_GEN	0x20		/* clock generation mode */
 #define CLK_GEN_SHIFT	0x8			/* shift value for clock freq. */
-#define TIMEOUT_SHIFT	0x16		/* shift value for timeout clock freq. */
+#define TIMEOUT_SHIFT	0x10		/* shift value for timeout clock freq. */
 
 /*
  * bitmasks for the status register
@@ -199,7 +200,7 @@ static int emmc_host_reset()
 		return -1;
 	}
 
-	debug_print(1, "EMMC reset successful.\n");
+	debug_print(2, "EMMC reset successful.\n");
 
 	return 0;
 }
@@ -221,12 +222,19 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	*(unsigned *)(EMMC_CTRL1) = reg;
 
 	/* approximate the desired clock frequency */
-	div = 0;
-	while (freq < base) {
-		++div;
-		base /= 2;
+	if (freq >= base) {
+		div = 0;
+	} else {
+		div = 1;
+		/* ARM does not have integer division so... */
+		/*while (freq < base / (2 * div))*/
+			/*++div;*/
+		while (freq < (base >> div))
+			++div;
+		/* in divided mode freq = base / (2 * div) so add one back to div */
+		div = 1 << (div-2);
+		debug_print(1, "Frequency divider = %u.\n", div);
 	}
-	debug_print(1, "Freq. divider = %u, freq. ~ %u.\n", div, base / (1 << div));
 
 	/* set the clock frequency in 'divided clock' mode */
 	reg &= ~CTRL_CLK_GEN;
@@ -250,13 +258,15 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 		return -1;
 	}
 
-	debug_print("EMMC clock is stable.\n");
+	debug_print(1, "EMMC clock is stable.\n");
 
 	/* enable clock on the bus */
 	reg = *(unsigned *)(EMMC_CTRL1);
 	reg |= CTRL_CLK_EN;
 	debug_print(1, "Writing 0x%x to CTRL1 (enable bus clock).\n", reg);
 	*(unsigned *)(EMMC_CTRL1) = reg;
+
+	debug_print(2, "EMMC Clock enabled.\n");
 
 	return 0;
 }
@@ -335,7 +345,7 @@ unsigned emmc_get_clock_rate()
 		return 0;
 	}
 
-	debug_print(1, "EMMC clock rate is %u Hz.\n", buf[6]);
+	debug_print(1, "EMMC clock base rate is %u Hz.\n", buf[6]);
 
 	return buf[6];
 }
@@ -378,8 +388,8 @@ int emmc_init()
 
 	/* send interrupts to the INTERRUPT register */
 	reg = INT_MASK_ALL;
+	debug_print(1, "Writing 0x%x to INT_MASK (enable interrupt flags).\n", reg);
 	*(unsigned *)(EMMC_INT_MASK);
-
 }
 
 /*

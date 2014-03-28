@@ -11,6 +11,7 @@ BUILD = build/
 
 #~==== cross compilation tools for ARM ==================================~#
 ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi/
+ARMLIB = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/
 ARM = $(ARMDIR)bin/arm-bcm2708-linux-gnueabi
 ARMCC = $(ARM)-gcc
 ARMAS = $(ARM)-as
@@ -19,7 +20,9 @@ OBJCOPY = $(ARM)-objcopy
 OBJDUMP = $(ARM)-objdump
 ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
 
-ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE) -ffreestanding -nostartfiles
+ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE)\
+		   	-ffreestanding -nostartfiles\
+		   	-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG
 ARMASFLAGS =
 ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
 #~=======================================================================~#
