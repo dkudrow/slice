@@ -84,6 +84,8 @@
 #define APP_CMD					55	/* next command is application specific */
 #define	SD_APP_OP_COND			41	/* get OCR register from SD card */
 
+#define CMD_TIMEOUT				500	/* timeout in ms for commands */
+
 /*
  * bitmasks for the CMDTM register
  */
@@ -162,7 +164,7 @@
 /*
  * busy wait with timeout (in ms)
  */
-int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
+static int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
 {
 	int i = 0;
 
@@ -272,9 +274,37 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 }
 
 /*
+ * send GO_IDLE_STATE to card
+ */
+static int emmc_send_go_idle_state()
+{
+	unsigned reg;
+
+	debug_print(1, "Sending GO_IDLE_STATE to card.\n");
+
+	reg = CMD_SHIFT(GO_IDLE_STATE);
+	debug_print(1, "Writing 0x%x to CMDTM (GO_IDLE_STATE).\n", reg);
+	*(unsigned *)(EMMC_CMDTM) = reg;
+
+	/* wait for the command done interrupt */
+	if (emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE,
+				CMD_TIMEOUT) < 0) {
+		error_print("GO_IDLE_STATE timed out.\n");
+		return -1;
+	}
+
+	/* clear the command done interrupt */
+	*(unsigned *)(EMMC_INTERRUPT) = INT_CMD_DONE;
+
+	debug_print(1, "GO_IDLE_STATE sent successfully.\n");
+
+	return 0;
+}
+
+/*
  * get EMMC clock state from VideoCore
  */
-unsigned emmc_get_clock_state()
+static unsigned emmc_get_clock_state()
 {
 	unsigned buf[8] __attribute__ ((aligned (16)));
 
@@ -315,7 +345,7 @@ unsigned emmc_get_clock_state()
 /*
  * get EMMC clock rate from VideoCore
  */
-unsigned emmc_get_clock_rate()
+static unsigned emmc_get_clock_rate()
 {
 	unsigned buf[8] __attribute__ ((aligned (16)));
 
@@ -372,11 +402,14 @@ int emmc_init()
 		error_print("EMMC did not detect SD card.\n");
 		return -1;
 	}
+	debug_print(2, "EMMC detected SD card.\n");
 
 	/* TODO: clear CTRL2? */
 
 	/* set the clock */
 	emmc_set_clock(base_freq, IDENT_FREQ);
+
+	/* TODO: set bus power? SDHCI section 3.3 */
 
 	/* clear interrupt status register */
 	reg = 0xFFFFFFFF;
@@ -389,7 +422,15 @@ int emmc_init()
 	/* send interrupts to the INTERRUPT register */
 	reg = INT_MASK_ALL;
 	debug_print(1, "Writing 0x%x to INT_MASK (enable interrupt flags).\n", reg);
-	*(unsigned *)(EMMC_INT_MASK);
+	*(unsigned *)(EMMC_INT_MASK) = reg;
+
+	timer_wait(10000);
+	debug_print(1, "INTERRUPT: 0x%x.\n", *(unsigned *)(EMMC_INTERRUPT));
+	emmc_dump_status();
+
+	/* send GO_IDLE_STATE to card */
+	if (emmc_send_go_idle_state() < 0)
+		return -1;
 }
 
 /*
