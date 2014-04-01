@@ -19,6 +19,11 @@
  * 	2. configure and enable the clock
  * 	3. enable interrupts
  *
+ * Once host is initialized, the card must be identified. The ID sequence
+ * is:
+ * 	1. reset the card with GO_IDLE_STATE command (CMD0)
+ * 	2. 
+ *
  */
 
 #include "mailbox.h"
@@ -110,6 +115,7 @@
 #define CMD_ABORT	0xC00000	/* abort prev. transfer */
 #define CMD_INDEX	0x1F00000	/* command index */
 
+#define CMD_MASK	0xFF000000	/* mask command index */
 #define CMD_SHIFT(x) (x << 24)	/* shift value for command index */
 
 /*
@@ -274,29 +280,48 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 }
 
 /*
- * send GO_IDLE_STATE to card
+ * send command
  */
-static int emmc_send_go_idle_state()
+static int emmc_send_command(unsigned cmd, unsigned arg)
 {
-	unsigned reg;
 
-	debug_print(1, "Sending GO_IDLE_STATE to card.\n");
+	debug_print(1, "Entering emmc_send_command().\n");
 
-	reg = CMD_SHIFT(GO_IDLE_STATE);
-	debug_print(1, "Writing 0x%x to CMDTM (GO_IDLE_STATE).\n", reg);
-	*(unsigned *)(EMMC_CMDTM) = reg;
-
-	/* wait for the command done interrupt */
-	if (emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE,
-				CMD_TIMEOUT) < 0) {
-		error_print("GO_IDLE_STATE timed out.\n");
+	/* wait for CMD line */
+	if (emmc_timeout(EMMC_STATUS, ST_CMD_BUSY, 0, 100) < 0) {
+		error_print("Timed out waiting for CMD line.\n");
 		return -1;
 	}
 
-	/* clear the command done interrupt */
+	/* TODO: handle busy and abort commands */
+
+	/* wait for DAT line */
+	if (emmc_timeout(EMMC_STATUS, ST_DAT_BUSY, 0, 100) < 0) {
+		error_print("Timed out waiting for DAT line.\n");
+		return -1;
+	}
+
+	/* set the argument */
+	debug_print(1, "Writing 0x%x to ARG1.\n", arg);
+	*(unsigned *)(EMMC_ARG1) = arg;
+
+	/* prepare and send the command */
+	*(unsigned *)(EMMC_CMDTM) = cmd & ~CMD_MASK;
+	debug_print(1, "Writing 0x%x to CMDTM.\n", cmd);
+	*(unsigned *)(EMMC_CMDTM) = cmd;
+
+	/* wait for command done interrupt */
+	if (emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE, 100) < 0) {
+		error_print("Timed out waiting for command done interrupt.\n");
+		return -1;
+	}
+
+	/* clear command done interrupt */
 	*(unsigned *)(EMMC_INTERRUPT) = INT_CMD_DONE;
 
-	debug_print(1, "GO_IDLE_STATE sent successfully.\n");
+	/* TODO: error check */
+
+	debug_print(1, "EMMC command sent successfully.\n");
 
 	return 0;
 }
@@ -385,7 +410,7 @@ static unsigned emmc_get_clock_rate()
  */
 int emmc_init()
 {
-	unsigned reg, base_freq;
+	unsigned cmd, arg, reg, base_freq;
 
 	debug_print(1, "Entering emmc_init().\n");
 
@@ -424,12 +449,11 @@ int emmc_init()
 	debug_print(1, "Writing 0x%x to INT_MASK (enable interrupt flags).\n", reg);
 	*(unsigned *)(EMMC_INT_MASK) = reg;
 
-	timer_wait(10000);
-	debug_print(1, "INTERRUPT: 0x%x.\n", *(unsigned *)(EMMC_INTERRUPT));
-	emmc_dump_status();
-
 	/* send GO_IDLE_STATE to card */
-	if (emmc_send_go_idle_state() < 0)
+	arg = 0;
+	cmd = CMD_SHIFT(GO_IDLE_STATE);
+	debug_print(2, "Sending GO_IDLE_STATE to card.\n");
+	if (emmc_send_command(cmd, arg) < 0)
 		return -1;
 }
 
