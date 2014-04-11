@@ -28,8 +28,3 @@ controller)
 
 *src/led.c* -- Some routines to control the BCM2835 LED's. Handy for
 debugging before the framebuffer is online.
-
-*src/keyboard.c* -- Incomplete.
-
-*src/usb.c* -- Incomplete.
-
