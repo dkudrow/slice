@@ -463,12 +463,23 @@ int emmc_init()
 	if (emmc_send_command(cmd, arg) < 0)
 		return -1;
 
-	/* send to card */
+	/* send SD_SEND_IF_COND to card */
 	arg = 0x1AA;
-	cmd = CMD_SHIFT(SD_SEND_IF_COND);
+	cmd = CMD_SHIFT(SD_SEND_IF_COND) | CMD_SHORT | CMD_CRC_CK | CMD_I_CK;
 	debug_print(2, "Sending SD_SEND_IF_COND to card.\n");
 	if (emmc_send_command(cmd, arg) < 0)
 		return -1;
+
+	/* check response to SD_SEND_IF_COND */
+	reg = *(unsigned *)(EMMC_RESP0);
+	if (reg ^ 0x100) {
+		error_print("Card voltage not supported.\n");
+		return -1;
+	} else if (reg & 0xFF != 0xAA) {
+		error_print("Bad check pattern for SD_SEND_IF_COND.\n");
+		return -1;
+	}
+
 }
 
 /*
