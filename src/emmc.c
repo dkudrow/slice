@@ -78,17 +78,9 @@
  * MMC/SD commands (defined by MMCA 4.4 and SDHCI 3.0)
  */
 #define GO_IDLE_STATE			0	/* reset the card to idle state */
-#define SEND_OP_COND			1	/* get OCR register from card */
-#define SEND_EXT_CSD			8	/* send EXT_CSD register */
-#define SD_SEND_IF_COND			8
-#define SET_BLOCKLEN			16	/* Set the block length (in bytes) */
-#define READ_SINGLE_BLOCK		17	/* Read one block */
-#define READ_MULTIPLE_BLOCK		18	/* Read multiple blocks */
-#define SET_BLOCK_COUNT			23	/* Set no. of blocks to read/write */
-#define WRITE_BLOCK				24	/* Write one block */
-#define WRITE_MULTIPLE_BLOCK	25	/* write multiple blocks */
+#define SD_SEND_IF_COND			8	/* get card voltage */
 #define APP_CMD					55	/* next command is application specific */
-#define	SD_APP_OP_COND			41	/* get OCR register from SD card */
+#define	SD_SEND_OP_COND			41	/* get OCR register from SD card */
 
 #define CMD_TIMEOUT				500	/* timeout in ms for commands */
 
@@ -170,6 +162,14 @@
 #define INT_DEND_ERR	0x400000	/* end bit on DAT not 1 */
 #define INT_ACMD_ERR	0x1000000	/* auto command error */
 #define INT_MASK_ALL	0x017F7137	/* mask all supported interrupts */
+
+/*
+ * OCR fields
+ */
+#define OCR_CAPACITY	0x40000000
+#define OCR_STATUS		0x80000000
+
+static int capacity;
 
 /*
  * busy wait with timeout (in ms)
@@ -334,6 +334,34 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 }
 
 /*
+ * send application specific command
+ */
+static int emmc_send_app_command(unsigned acmd, unsigned arg)
+{
+	unsigned cmd55, arg55;
+
+	debug_print(1, "Entering emmc_send_app_command().\n");
+
+	/* prepare card for app specific command with APP_CMD */
+	cmd55 = CMD_SHIFT(APP_CMD) | CMD_SHORT | CMD_CRC_CK | CMD_I_CK;
+	arg55 = 0;
+	debug_print(1, "Sending APP_CMD to card.\n");
+	if (emmc_send_command(cmd55, arg55) < 0) {
+		return -1;
+	}
+
+	/* send app specific command */
+	debug_print(1, "Sending ACMD to card.\n");
+	if (emmc_send_command(acmd, arg) < 0) {
+		return -1;
+	}
+
+	debug_print(1, "EMMC app specific command sent successfully.\n");
+
+	return 0;
+}
+
+/*
  * get EMMC clock state from VideoCore
  */
 static unsigned emmc_get_clock_state()
@@ -472,13 +500,28 @@ int emmc_init()
 
 	/* check response to SD_SEND_IF_COND */
 	reg = *(unsigned *)(EMMC_RESP0);
-	if (reg ^ 0x100) {
-		error_print("Card voltage not supported.\n");
+	if (!(reg & 0x100)) {
+		error_print("Card voltage not supported. RESP0: 0x%x.\n", reg);
 		return -1;
 	} else if (reg & 0xFF != 0xAA) {
-		error_print("Bad check pattern for SD_SEND_IF_COND.\n");
+		error_print("Bad check pattern. Expected 0xAA, found 0x%x.\n", reg);
 		return -1;
 	}
+
+	/* send SD_SEND_OP_COND  to card */
+	cmd = CMD_SHIFT(SD_SEND_OP_COND) | CMD_SHORT;
+	arg = 0;
+	debug_print(2, "Sending SD_SEND_OP_COND to card.\n");
+	if (emmc_send_app_command(cmd, arg) < 0)
+		return -1;
+
+	/* check response to SD_SEND_OP_COND */
+	reg = *(unsigned *)(EMMC_RESP0);
+	if (reg & OCR_STATUS && reg & OCR_CAPACITY)
+		capacity = 1;
+	else
+		capacity = 0;
+	debug_print(2, "Card capacity is %s.\n", capacity ? "SDSC" : "SDHC/SDXC");
 
 }
 
