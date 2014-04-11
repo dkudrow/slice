@@ -77,12 +77,14 @@
 /*
  * MMC/SD commands (defined by MMCA 4.4 and SDHCI 3.0)
  */
-#define GO_IDLE_STATE			0	/* reset the card to idle state */
-#define SD_SEND_IF_COND			8	/* get card voltage */
-#define APP_CMD					55	/* next command is application specific */
-#define	SD_SEND_OP_COND			41	/* get OCR register from SD card */
+#define GO_IDLE_STATE		0	/* reset the card to idle state */
+#define ALL_SEND_CID		2	/* request CID */
+#define SEND_RELATIVE_ADDR	3	/* request RCA */
+#define SD_SEND_IF_COND		8	/* get card voltage */
+#define APP_CMD				55	/* next command is application specific */
+#define	SD_SEND_OP_COND		41	/* get OCR register from SD card */
 
-#define CMD_TIMEOUT				500	/* timeout in ms for commands */
+#define CMD_TIMEOUT			500	/* timeout in ms for commands */
 
 /*
  * bitmasks for the CMDTM register
@@ -168,8 +170,10 @@
  */
 #define OCR_CAPACITY	0x40000000
 #define OCR_STATUS		0x80000000
+#define OCR_VOLTAGE		0xFF8000
 
 static int capacity;
+static int rca;
 
 /*
  * busy wait with timeout (in ms)
@@ -321,7 +325,7 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 	/* TODO: error check */
 	reg = *(unsigned *)(EMMC_INTERRUPT);
 	if (reg & INT_ERROR) {
-		error_print("Error sending command. INTERRUPT: 0x%x", reg);
+		error_print("Error sending command. INTERRUPT: 0x%x.\n", reg);
 		return -1;
 	}
 
@@ -445,7 +449,7 @@ static unsigned emmc_get_clock_rate()
  */
 int emmc_init()
 {
-	unsigned cmd, arg, reg, base_freq;
+	unsigned cmd, arg, reg, resp, base_freq;
 
 	debug_print(1, "Entering emmc_init().\n");
 
@@ -499,16 +503,16 @@ int emmc_init()
 		return -1;
 
 	/* check response to SD_SEND_IF_COND */
-	reg = *(unsigned *)(EMMC_RESP0);
-	if (!(reg & 0x100)) {
-		error_print("Card voltage not supported. RESP0: 0x%x.\n", reg);
+	resp = *(unsigned *)(EMMC_RESP0);
+	if (!(resp & 0x100)) {
+		error_print("Card voltage not supported. RESP0: 0x%x.\n", resp);
 		return -1;
-	} else if (reg & 0xFF != 0xAA) {
-		error_print("Bad check pattern. Expected 0xAA, found 0x%x.\n", reg);
+	} else if (resp & 0xFF != 0xAA) {
+		error_print("Bad check pattern. Expected 0xAA, found 0x%x.\n", resp);
 		return -1;
 	}
 
-	/* send SD_SEND_OP_COND  to card */
+	/* send SD_SEND_OP_COND to card to get card's OCR */
 	cmd = CMD_SHIFT(SD_SEND_OP_COND) | CMD_SHORT;
 	arg = 0;
 	debug_print(2, "Sending SD_SEND_OP_COND to card.\n");
@@ -516,12 +520,43 @@ int emmc_init()
 		return -1;
 
 	/* check response to SD_SEND_OP_COND */
-	reg = *(unsigned *)(EMMC_RESP0);
-	if (reg & OCR_STATUS && reg & OCR_CAPACITY)
+	resp = *(unsigned *)(EMMC_RESP0);
+	if (resp & OCR_STATUS && resp & OCR_CAPACITY)
 		capacity = 1;
 	else
 		capacity = 0;
 	debug_print(2, "Card capacity is %s.\n", capacity ? "SDSC" : "SDHC/SDXC");
+
+	/* send SD_SEND_OP_COND to card to send host's OCR to card */
+	cmd = CMD_SHIFT(SD_SEND_OP_COND) | CMD_SHORT;
+	arg = OCR_VOLTAGE | OCR_CAPACITY;
+	resp = 0;
+	debug_print(2, "Sending SD_SEND_OP_COND to card.\n");
+	do {
+		if (emmc_send_app_command(cmd, arg) < 0)
+			return -1;
+		timer_wait(10000);
+		resp = *(unsigned *)(EMMC_RESP0);
+	} while (!(resp & OCR_STATUS));
+
+	/* send ALL_SEND_CID to card */
+	cmd = CMD_SHIFT(ALL_SEND_CID) | CMD_LONG | CMD_CRC_CK;
+	arg = 0;
+	debug_print(2, "Sending ALL_SEND_CID to card.\n");
+	if (emmc_send_command(cmd, arg) < 0)
+		return -1;
+
+	/* send SEND_RELATIVE_ADDR to card */
+	cmd = CMD_SHIFT(SEND_RELATIVE_ADDR) | CMD_SHORT | CMD_CRC_CK | CMD_I_CK;
+	arg = 0;
+	debug_print(2, "Sending SEND_RELATIVE_ADDR to card.\n");
+	if (emmc_send_command(cmd, arg) < 0)
+		return -1;
+
+	/* retrieve RCA */
+	reg = *(unsigned *)(EMMC_RESP0);
+	rca = reg & 0xFFFF0000;
+	debug_print(2, "Card send RCA: 0x%x.\n", rca);
 
 }
 

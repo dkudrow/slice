@@ -22,7 +22,7 @@ ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
 
 ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE)\
 		   	-ffreestanding -nostartfiles\
-		   	-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG
+		   	-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
 ARMASFLAGS =
 ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
 #~=======================================================================~#
