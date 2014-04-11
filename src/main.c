@@ -29,17 +29,8 @@ slice_main()
 		error_solid();
 	}
 
-	timer_wait(3000000); 
-
-
 	console_init();
 	printf("Console initialized, welcome to Slice.\n");
-
-	/*
-	printf("Reading exception vector table...\n");
-	for (i=0x0; i<0x20; i+=4)
-		printf("0x%x: 0x%x\n", i, *(unsigned *)i);
-	*/
 
 	emmc_init();
 

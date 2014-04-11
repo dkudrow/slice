@@ -14,6 +14,10 @@
 #define DEBUG_LEVEL 1
 #endif
 
+#ifndef PRINT_HANDLE
+#define PRINT_HANDLE "?"
+#endif
+
 /*
  * Debug print levels:
  * 1: function calls
@@ -21,7 +25,7 @@
 #ifdef PRINT_DEBUG
 #define debug_print(level, ...)\
 	if (level >= DEBUG_LEVEL) {\
-		printf("DEBUG: ");\
+		printf("DEBUG (%s): ", PRINT_HANDLE);\
 		printf(__VA_ARGS__);\
 	}
 #else
@@ -30,7 +34,7 @@
 
 #ifdef PRINT_WARN
 #define warn_print(...)\
-	printf("WARN: ");\
+	printf("WARN (%s): ", PRINT_HANDLE);\
 	printf(__VA_ARGS__);
 #else
 #define warn_print(...)
@@ -38,7 +42,7 @@
 
 #ifdef PRINT_ERROR
 #define error_print(...)\
-	printf("ERROR: ");\
+	printf("ERROR (%s): ", PRINT_HANDLE);\
 	printf(__VA_ARGS__);
 #else
 #define error_print(...)

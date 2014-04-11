@@ -33,6 +33,7 @@
 #ifdef DEBUG_EMMC
 #define PRINT_DEBUG
 #endif
+#define PRINT_HANDLE "EMMC"
 #include "debug.h"
 
 #define IDENT_FREQ 400000	/* clock frequency during initialization */
@@ -129,8 +130,10 @@
 #define CTRL_STABLE		0x2			/* set when internal clock is stable */
 #define CTRL_CLK_EN		0x4			/* enable the clock */
 #define CTRL_CLK_GEN	0x20		/* clock generation mode */
-#define CLK_GEN_SHIFT	0x8			/* shift value for clock freq. */
+
 #define TIMEOUT_SHIFT	0x10		/* shift value for timeout clock freq. */
+#define SHIFT_CLK_GEN(x)\
+	((x & 0xFF) << 0x8 | (x & 0x300) << 0x2)
 
 /*
  * bitmasks for the status register
@@ -157,6 +160,7 @@
 #define INT_RETUNE		0x1000		/* clock retune request */
 #define INT_BOOTACK		0x2000		/* boot acknowledge recieved */
 #define INT_ENDBOOT		0x4000		/* boot operation has ended */
+#define INT_ERROR		0x8000		/* error occured */
 #define INT_CTO_ERR		0x10000		/* timeout on CMD */
 #define INT_CCRC_ERR	0x20000		/* CRC error on CMD */
 #define INT_CEND_ERR	0x40000		/* end bit on CMD not 1 */
@@ -246,7 +250,7 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 
 	/* set the clock frequency in 'divided clock' mode */
 	reg &= ~CTRL_CLK_GEN;
-	reg |= div << CLK_GEN_SHIFT;
+	reg |= SHIFT_CLK_GEN(div);
 
 	/* hardcode the timeout frequency */
 	/* TODO: recalculate based on clock */
@@ -284,6 +288,7 @@ static int emmc_set_clock(unsigned base, unsigned freq)
  */
 static int emmc_send_command(unsigned cmd, unsigned arg)
 {
+	unsigned reg;
 
 	debug_print(1, "Entering emmc_send_command().\n");
 
@@ -306,22 +311,24 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 	*(unsigned *)(EMMC_ARG1) = arg;
 
 	/* prepare and send the command */
-	*(unsigned *)(EMMC_CMDTM) = cmd & ~CMD_MASK;
+	/**(unsigned *)(EMMC_CMDTM) = cmd & ~CMD_MASK;*/
 	debug_print(1, "Writing 0x%x to CMDTM.\n", cmd);
 	*(unsigned *)(EMMC_CMDTM) = cmd;
 
 	/* wait for command done interrupt */
-	if (emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE, 100) < 0) {
-		error_print("Timed out waiting for command done interrupt.\n");
+	emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE, 500);
+
+	/* TODO: error check */
+	reg = *(unsigned *)(EMMC_INTERRUPT);
+	if (reg & INT_ERROR) {
+		error_print("Error sending command. INTERRUPT: 0x%x", reg);
 		return -1;
 	}
 
+	debug_print(1, "EMMC command sent successfully.\n");
+
 	/* clear command done interrupt */
 	*(unsigned *)(EMMC_INTERRUPT) = INT_CMD_DONE;
-
-	/* TODO: error check */
-
-	debug_print(1, "EMMC command sent successfully.\n");
 
 	return 0;
 }
@@ -436,13 +443,13 @@ int emmc_init()
 
 	/* TODO: set bus power? SDHCI section 3.3 */
 
-	/* clear interrupt status register */
-	reg = 0xFFFFFFFF;
-	*(unsigned *)(EMMC_INTERRUPT) = reg;
-
 	/* do not send interrupts to the ARM core */
 	reg = 0;
 	*(unsigned *)(EMMC_INT_ENBL) = reg;
+
+	/* clear interrupt status register */
+	reg = 0xFFFFFFFF;
+	*(unsigned *)(EMMC_INTERRUPT) = reg;
 
 	/* send interrupts to the INTERRUPT register */
 	reg = INT_MASK_ALL;
@@ -453,6 +460,13 @@ int emmc_init()
 	arg = 0;
 	cmd = CMD_SHIFT(GO_IDLE_STATE);
 	debug_print(2, "Sending GO_IDLE_STATE to card.\n");
+	if (emmc_send_command(cmd, arg) < 0)
+		return -1;
+
+	/* send to card */
+	arg = 0x1AA;
+	cmd = CMD_SHIFT(SD_SEND_IF_COND);
+	debug_print(2, "Sending SD_SEND_IF_COND to card.\n");
 	if (emmc_send_command(cmd, arg) < 0)
 		return -1;
 }
