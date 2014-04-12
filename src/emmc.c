@@ -21,8 +21,15 @@
  *
  * Once host is initialized, the card must be identified. The ID sequence
  * is:
- * 	1. reset the card with GO_IDLE_STATE command (CMD0)
- * 	2. 
+ * 	1. reset the card with the GO_IDLE_STATE command (CMD0)
+ * 	2. check the card's voltage range with the SD_SEND_IF_COND (CMD8)
+ * 	3. get the card's OCR register with SD_SEND_OP_COND (ACMD41)
+ * 	4. send the host's OCR register with SD_SEND_OP_COND (ACMD41)
+ * 	5. get the card's CID register with ALL_SEND_CID (CMD2)
+ * 	6. get the card's RCA with SEND_RELATIVE_ADDR (CMD3)
+ * 
+ * The card is now ready for data transfer operations. The default block
+ * length for transfers is 512 bytes.
  *
  */
 
@@ -80,7 +87,12 @@
 #define GO_IDLE_STATE		0	/* reset the card to idle state */
 #define ALL_SEND_CID		2	/* request CID */
 #define SEND_RELATIVE_ADDR	3	/* request RCA */
+#define SELECT_CARD			7	/* select a card by RCA */
 #define SD_SEND_IF_COND		8	/* get card voltage */
+#define SET_BLOCKLEN		16	/* set block length (SDSC only) */
+#define READ_SINGLE_BLOCK	17	/* read a single block of data */
+#define WRITE_BLOCK			24	/* write a single block of data */
+
 #define APP_CMD				55	/* next command is application specific */
 #define	SD_SEND_OP_COND		41	/* get OCR register from SD card */
 
@@ -168,9 +180,11 @@
 /*
  * OCR fields
  */
-#define OCR_CAPACITY	0x40000000
-#define OCR_STATUS		0x80000000
-#define OCR_VOLTAGE		0xFF8000
+#define OCR_VOLTAGE		0xFF8000	/* OCR voltage range */
+#define OCR_S18			0x1000000	/* 1 indicates switch to 1.8V mode */
+#define OCR_UHSII		0x20000000	/* cars sets to 1 if UHS-II */
+#define OCR_CAPACITY	0x40000000	/* card sets to 1 for SDHC/SDXC */
+#define OCR_BUSY		0x80000000	/* card sets to 1 when ready */
 
 static int capacity;
 static int rca;
@@ -521,7 +535,7 @@ int emmc_init()
 
 	/* check response to SD_SEND_OP_COND */
 	resp = *(unsigned *)(EMMC_RESP0);
-	if (resp & OCR_STATUS && resp & OCR_CAPACITY)
+	if (resp & OCR_BUSY && resp & OCR_CAPACITY)
 		capacity = 1;
 	else
 		capacity = 0;
@@ -537,7 +551,8 @@ int emmc_init()
 			return -1;
 		timer_wait(10000);
 		resp = *(unsigned *)(EMMC_RESP0);
-	} while (!(resp & OCR_STATUS));
+	} while (!(resp & OCR_BUSY));
+	debug_print(2, "Card returned 0x%x.\n", resp);
 
 	/* send ALL_SEND_CID to card */
 	cmd = CMD_SHIFT(ALL_SEND_CID) | CMD_LONG | CMD_CRC_CK;
@@ -545,6 +560,10 @@ int emmc_init()
 	debug_print(2, "Sending ALL_SEND_CID to card.\n");
 	if (emmc_send_command(cmd, arg) < 0)
 		return -1;
+	
+	/* check response to ALL_SEND_CID */
+	resp = *(unsigned *)(EMMC_RESP0);
+	debug_print(2, "Card returned 0x%x.\n", resp);
 
 	/* send SEND_RELATIVE_ADDR to card */
 	cmd = CMD_SHIFT(SEND_RELATIVE_ADDR) | CMD_SHORT | CMD_CRC_CK | CMD_I_CK;
@@ -552,29 +571,37 @@ int emmc_init()
 	debug_print(2, "Sending SEND_RELATIVE_ADDR to card.\n");
 	if (emmc_send_command(cmd, arg) < 0)
 		return -1;
-
+	
 	/* retrieve RCA */
-	reg = *(unsigned *)(EMMC_RESP0);
-	rca = reg & 0xFFFF0000;
-	debug_print(2, "Card send RCA: 0x%x.\n", rca);
+	resp = *(unsigned *)(EMMC_RESP0);
+	rca = resp & 0xFFFF0000;
+	debug_print(2, "Card returned 0x%x.\n", resp);
+	debug_print(2, "Card sent RCA: 0x%x.\n", rca);
+	
+	/* send SELECT_CARD to card */
+	cmd = CMD_SHIFT(SELECT_CARD) | CMD_BUSY | CMD_CRC_CK | CMD_I_CK;
+	arg = rca;
+	if (emmc_send_command(cmd, arg) < 0)
+		return -1;
+	
+	/* check response to SELECT_CARD */
+	resp = *(unsigned *)(EMMC_RESP0);
+	debug_print(2, "Card returned 0x%x.\n", resp);
+	/* TODO check card status */
 
+	debug_print(2, "SD card initialized.\n");
+	return 0;
 }
 
 /*
- * dump the EMMC STATUS register
+ * read and write from card
  */
-void emmc_dump_status()
+emmc_read()
 {
-	unsigned reg;
-
-	reg = *(unsigned *)(EMMC_STATUS);
-
-	printf("CMD: %x, DAT[0:3]: %x, DAT[4:7]: %x\n", reg&ST_CMD, reg&ST_DAT_LO,
-			reg&ST_DAT_HI);
-	printf("write ready: %u, read ready: %u\n", reg&ST_WRITE_RDY,
-			reg&ST_READ_RDY);
-	printf("cmd busy: %u, dat busy: %u, dat active: %u\n", reg&ST_CMD_BUSY,
-			reg&ST_DAT_BUSY, reg&ST_DAT_ACTIVE);
+	unsigned cmd, arg;
+	
+	cmd = CMD_SHIFT(READ_SINGLE_BLOCK) | TM_DATDIR | CMD_SHORT | CMD_CRC_CK
+		| CMD_I_CK | CMD_DATA;
 }
 
 /*
