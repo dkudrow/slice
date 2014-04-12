@@ -27,6 +27,7 @@
  * 	4. send the host's OCR register with SD_SEND_OP_COND (ACMD41)
  * 	5. get the card's CID register with ALL_SEND_CID (CMD2)
  * 	6. get the card's RCA with SEND_RELATIVE_ADDR (CMD3)
+ *	7. select the card with SELECT_CARD (CMD7)
  * 
  * The card is now ready for data transfer operations. The default block
  * length for transfers is 512 bytes.
@@ -44,6 +45,7 @@
 #include "debug.h"
 
 #define IDENT_FREQ 400000	/* clock frequency during initialization */
+#define OPER_FREQ 20000000	/* clock frequency during normal operation */
  
 /*
  * EMMC base address and registers
@@ -482,12 +484,8 @@ int emmc_init()
 	}
 	debug_print(2, "EMMC detected SD card.\n");
 
-	/* TODO: clear CTRL2? */
-
 	/* set the clock */
 	emmc_set_clock(base_freq, IDENT_FREQ);
-
-	/* TODO: set bus power? SDHCI section 3.3 */
 
 	/* do not send interrupts to the ARM core */
 	reg = 0;
@@ -588,6 +586,9 @@ int emmc_init()
 	resp = *(unsigned *)(EMMC_RESP0);
 	debug_print(2, "Card returned 0x%x.\n", resp);
 	/* TODO check card status */
+
+	/* set the clock */
+	emmc_set_clock(base_freq, OPER_FREQ);
 
 	debug_print(2, "SD card initialized.\n");
 	return 0;
