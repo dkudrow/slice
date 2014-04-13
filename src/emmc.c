@@ -32,6 +32,12 @@
  * The card is now ready for data transfer operations. The default block
  * length for transfers is 512 bytes.
  *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
+ *
+ * TODO:
+ * -Unused macros
+ * -Default timeouts, clocks
+ * -Comments
  */
 
 #include "mailbox.h"
@@ -187,6 +193,11 @@
 #define OCR_UHSII		0x20000000	/* cars sets to 1 if UHS-II */
 #define OCR_CAPACITY	0x40000000	/* card sets to 1 for SDHC/SDXC */
 #define OCR_BUSY		0x80000000	/* card sets to 1 when ready */
+
+/*
+ * R1 response fields
+ */
+#define R1_ERRORS		0xFFF90000	/* mask all error bits */
 
 static int capacity;
 static int rca;
@@ -587,6 +598,18 @@ int emmc_init()
 	debug_print(2, "Card returned 0x%x.\n", resp);
 	/* TODO check card status */
 
+	/* set the block length to 512 bytes (only affects SDSC) */
+	cmd = CMD_SHIFT(SET_BLOCKLEN) | CMD_SHORT | CMD_CRC_CK | CMD_I_CK;
+	arg = 512;
+	debug_print(2, "Sending SET_BLOCKLEN to card.\n");
+	if (emmc_send_command(cmd, arg) < 0)
+		return -1;
+	
+	/* check response to SELECT_CARD */
+	resp = *(unsigned *)(EMMC_RESP0);
+	debug_print(2, "Card returned 0x%x.\n", resp);
+	/* TODO check response */
+
 	/* set the clock */
 	emmc_set_clock(base_freq, OPER_FREQ);
 
@@ -597,12 +620,41 @@ int emmc_init()
 /*
  * read and write from card
  */
-emmc_read()
+int emmc_read_block(unsigned block, unsigned *buf)
 {
-	unsigned cmd, arg;
-	
+	unsigned cmd, resp;
+
+	/* set the transfer block size */
+	*(unsigned *)(EMMC_BLKSIZCNT) = 512;
+
+	/* prepare read command with block number as argument */
 	cmd = CMD_SHIFT(READ_SINGLE_BLOCK) | TM_DATDIR | CMD_SHORT | CMD_CRC_CK
 		| CMD_I_CK | CMD_DATA;
+	emmc_send_command(cmd, block);
+
+	/* check response */
+	resp = *(unsigned *)(EMMC_RESP0);
+	if (resp & R1_ERRORS) {
+		error_print("Error reading from SD card. Bad response: 0x%x.\n", resp);
+		return -1;
+	}
+
+	/* wait for read ready interrupt */
+	if (emmc_timeout(EMMC_INTERRUPT, INT_RD_READY, INT_RD_READY, 500) < 0) {
+		error_print("Error reading from SD card. Timeout waiting for buffer.\n");
+		return -1;
+	}
+	*(unsigned *)(EMMC_INTERRUPT) = INT_RD_READY;
+
+	/* get data from host */
+	debug_print(2, "DATA: 0x%x.\n", *(unsigned *)(EMMC_DATA));
+
+	/* wait for transfer complete interrupt */
+	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, 500) < 0) {
+		error_print("Error reading from SD card. Timeout waiting transfer.\n");
+		return -1;
+	}
+	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
 }
 
 /*

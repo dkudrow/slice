@@ -34,6 +34,9 @@ slice_main()
 
 	emmc_init();
 
+	unsigned char buf[512];
+	emmc_read_block(0, buf);
+
 	printf("Done.");
 
 	error_blink();
