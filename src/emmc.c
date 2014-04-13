@@ -618,11 +618,11 @@ int emmc_init()
 }
 
 /*
- * read and write from card
+ * read single block from card
  */
 int emmc_read_block(unsigned block, unsigned *buf)
 {
-	unsigned cmd, resp;
+	unsigned cmd, resp, i, data_word;
 
 	/* set the transfer block size */
 	*(unsigned *)(EMMC_BLKSIZCNT) = 512;
@@ -647,7 +647,22 @@ int emmc_read_block(unsigned block, unsigned *buf)
 	*(unsigned *)(EMMC_INTERRUPT) = INT_RD_READY;
 
 	/* get data from host */
-	debug_print(2, "DATA: 0x%x.\n", *(unsigned *)(EMMC_DATA));
+	for (i=0; i<512; i+=4)
+		*buf++ = *(unsigned *)(EMMC_DATA);
+
+	/*
+	printf("Reading Block %d...", block);
+	for (i=0; i<512; i+=4) {
+		if (!(i % 32))
+			printf("\n");
+		data_word = *(unsigned *)(EMMC_DATA);
+		int j;
+		for (j=7; j>=0; j--) {
+			printf("%x", (data_word >> j*4) & 0xF);
+		}
+	}
+	printf("\n");
+	*/
 
 	/* wait for transfer complete interrupt */
 	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, 500) < 0) {
@@ -655,6 +670,51 @@ int emmc_read_block(unsigned block, unsigned *buf)
 		return -1;
 	}
 	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
+
+	return 0;
+}
+
+/*
+ * write single block to card
+ */
+int emmc_write_block(unsigned block, unsigned *buf)
+{
+	unsigned cmd, resp, i;
+
+	/* set the transfer block size */
+	*(unsigned *)(EMMC_BLKSIZCNT) = 512;
+
+	/* prepare write command with block number as argument */
+	cmd = CMD_SHIFT(WRITE_BLOCK) | CMD_SHORT | CMD_CRC_CK
+		| CMD_I_CK | CMD_DATA;
+	emmc_send_command(cmd, block);
+
+	/* check response */
+	resp = *(unsigned *)(EMMC_RESP0);
+	if (resp & R1_ERRORS) {
+		error_print("Error writing to SD card. Bad response: 0x%x.\n", resp);
+		return -1;
+	}
+
+	/* wait for write ready interrupt */
+	if (emmc_timeout(EMMC_INTERRUPT, INT_WR_READY, INT_WR_READY, 500) < 0) {
+		error_print("Error writing to SD card. Timeout waiting for buffer.\n");
+		return -1;
+	}
+	*(unsigned *)(EMMC_INTERRUPT) = INT_WR_READY;
+
+	/* get data from host */
+	for (i=0; i<512; i+=4)
+		*(unsigned *)(EMMC_DATA) = *buf++;
+
+	/* wait for transfer complete interrupt */
+	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, 500) < 0) {
+		error_print("Error reading from SD card. Timeout waiting transfer.\n");
+		return -1;
+	}
+	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
+
+	return 0;
 }
 
 /*
