@@ -14,7 +14,7 @@
 #define EMMC_H
 
 void emmc_init();
-void emmc_dump_registers();
-void emmc_dump_status();
+void emmc_read_block();
+void emmc_write_block();
 
 #endif /* EMMC_H */
