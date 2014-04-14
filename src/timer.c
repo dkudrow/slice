@@ -7,6 +7,9 @@
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014
  *
+ * Copyright (c) 2014, Daniel Kudrow
+ * All rights reserved, see LICENSE.txt for details.
+ *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
  * The system timer is the BCM2835's global clock. It is laid out as

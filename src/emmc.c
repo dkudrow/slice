@@ -7,6 +7,9 @@
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 23 2014
  *
+ * Copyright (c) 2014, Daniel Kudrow
+ * All rights reserved, see LICENSE.txt for details.
+ *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
  * The Raspberry Pi's EMMC implements the MMCA 4.4 and SDHCI 3.0
