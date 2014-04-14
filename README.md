@@ -1,6 +1,12 @@
 # Slice OS
-Slice is (going to be) a very basic operating system for the Raspberry Pi,
-written from the ground up.
+Slice is (going to be) a very basic operating system for the Raspberry Pi, written from the ground up. It is designed with the following principles in mind:
+
+1. **Simplicity**. By eschewing portability and focusing only on the Raspberry Pi the code base can be kept small and sane.
+
+2. **Modularity**. Slice is a meant to be pulled apart and is constructed with perforated seams. Logically separate slices of Slice (pun absolutely intended) are kept as independent as possible to facilitate their replacement or inclusion in other projects. It is the OS designer's playground.
+
+3. **Readability**. Modern operating systems are large, complex beasts. 
+the novice developer trying to understand them through their source code is faced with a daunting task. Slice is heavily commented and aims to be self-documenting. Each compilation unit contains an explanation of its its role in Slice, how it works and why it was designed that way.
 
 ## Progress
 Below I will report progress on the various sub-systems as I write them. They appear roughly in order of conception.
