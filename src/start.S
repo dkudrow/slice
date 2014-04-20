@@ -2,7 +2,7 @@
 
  * src/start.S
  *
- * initialization and trampoline to OS entry
+ * initialization, interrupt handlers and trampoline to OS entry
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014
@@ -17,6 +17,10 @@
  * kernel image is loaded into address 0x8000 (although this can be changed
  * in `config.txt') and control is reluctantly relinquished to the ARM
  * core.
+ *
+ * We set the stage for the kernel entry by:
+ *	1. initializing each processor mode's stack pointer
+ *	2. setting up the interrupt vector table
  *
  * Before we pass control off to the OS proper, we have to take care of a
  * little housekeeping. Although we could conceivably do this in C, it is
@@ -38,7 +42,7 @@
 .set CPSR_ENABLE_INT,	0xC0	/* all interrupt enable mask */
 
 /*
- * vector table
+ * Interrupt vector table
  *
  * By default, the ARM's vector table resides at physical address 0x0.
  * Because the kernel image is loaded at address 0x8000, we have to be
@@ -53,8 +57,7 @@
  * addresses of the exception handlers in memory close to the vector table
  * and load them relative to the program counter. This way the handlers are
  * not bound to addresses that work with ARM's immediate addressing scheme.
- * We pay for this flexibility by introducing another layer of
- * indirection.
+ * We pay for this flexibility with an extra layer of indirection.
  */
 .globl vectors
 
@@ -121,7 +124,7 @@ handle_reset:		/* address of first instruction in slice! */
  * cannot enter user mode to set the user stack pointer because there would
  * be no way of returning to supervisor mode. For this reason we enter
  * system mode which shares all of its registers with user mode but is
- * privileged (allowed to modify the cpsr register) allowing us to return
+ * privileged (allowed to modify the CPSR register) allowing us to return
  * to supervisor mode. Also notice that we must be careful to keep
  * interrupts disabled.
  */
@@ -164,31 +167,58 @@ msr	cpsr, r0	/* enable interrupts and return to supervisor mode */
 b	slice_main	/* transfer control to OS */
 
 /*
- * FIXME:
- * These handlers are located here temporarily but will eventually find
- * their way into .text
+ * interrupt handlers
+ *
+ * When the ARM Core receives an interrupt request, it disables interrupts
+ * and switches to corresponding mode (copying the user's CPSR into the
+ * interrupt mode's CPSR). The program counter is set to the appropriate
+ * location in the interrupt vector table and the interrupt handler is thus
+ * invoked. Due to the structure of the ARM pipeline, the link register
+ * points to one word *past* where the program was interrupted. The
+ * interrupt handler must act accordingly when saving state.
  */
+.section .text
+
+.globl handle_undefined
+
 handle_undefined:
 b	hang$
+
+.globl handle_software_int
 
 handle_software_int:
 b	hang$
 
+.globl handle_prefetch_abort
+
 handle_prefetch_abort:
 b	hang$
+
+.globl handle_data_abort
 
 handle_data_abort:
 b	hang$
 
+.globl handle_unused
+
 handle_unused:
 b	hang$
 
+/*
+ * handle_irq
+ */
+.globl handle_irq
+
 handle_irq:
-b	hang$
+sub	lr, lr, #4		/* adjust link register */
+stmfd	sp!, {r0-r3, lr}	/* save context */
+bl	irq_handle_interrupt	/* branch to actual handler */
+ldmfd	sp!, {r0-r3, pc}^	/* restore context, CPSR and return */
+
+.globl handle_fiq
 
 handle_fiq:
 b	hang$
 
 hang$:
 b	hang$
-
