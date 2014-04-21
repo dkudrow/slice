@@ -1,5 +1,5 @@
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
-
+ *
  * src/start.S
  *
  * initialization, interrupt handlers and trampoline to OS entry
@@ -21,6 +21,8 @@
  * We set the stage for the kernel entry by:
  *	1. initializing each processor mode's stack pointer
  *	2. setting up the interrupt vector table
+ *	3. enabling interrupts on the ARM core
+ *	4. enabling interrupts on the BCM2835 peripherals 
  *
  * Before we pass control off to the OS proper, we have to take care of a
  * little housekeeping. Although we could conceivably do this in C, it is
@@ -29,6 +31,9 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
+/*
+ * ARM CPSR register fields
+ */
 .set CPSR_MODE_USR,	0x10	/* user mode mask */
 .set CPSR_MODE_FIQ,	0x11	/* fiq mode mask */
 .set CPSR_MODE_IRQ,	0x12	/* irq mode mask */
@@ -57,8 +62,11 @@
  * addresses of the exception handlers in memory close to the vector table
  * and load them relative to the program counter. This way the handlers are
  * not bound to addresses that work with ARM's immediate addressing scheme.
- * We pay for this flexibility with an extra layer of indirection.
+ * We pay for this flexibility with an extra branch.
  */
+
+.section .text
+
 .globl vectors
 
 vectors:
@@ -96,7 +104,7 @@ vec_fiq:
 .word handle_fiq
 
 /*
- * initialization code
+ * Initialization code
  *
  * The ARM Core starts executing at 0x8000 so we have to make sure that
  * this is where the startup code lives. We do this by placing it in its
@@ -106,14 +114,16 @@ vec_fiq:
 .section .init
 
 /*
- * reset exception handler 
+ * Reset exception handler 
  *
  * The reset exception is the highest priority exception and is signaled
  * when the ARM Core powers up. The reset handler takes care of low-level
  * initialization tasks and so we make it the entry point to our kernel
  * image. The reset handler has the following tasks:
  *	1. Set up a stack for each processor mode
- *	2. Set up the vector table and enable exceptions
+ *	2. Set up the interrupt vector table
+ *	3. Enable interrupts
+ *	4. Branch to the kernel main
  */
 .globl handle_reset
 
@@ -130,28 +140,34 @@ handle_reset:		/* address of first instruction in slice! */
  */
 ldr	sp, =0x8000	/* set supervisor mode stack pointer */
 
-mov	r0, #CPSR_MODE_IRQ | CPSR_ENABLE_INT
+mov	r0, #(CPSR_MODE_IRQ | CPSR_ENABLE_INT)
 msr	cpsr, r0	/* change to IRQ mode */
 ldr	sp, =0x7000	/* set IRQ mode stack pointer */
 
-mov	r0, #CPSR_MODE_FIQ | CPSR_ENABLE_INT
+mov	r0, #(CPSR_MODE_FIQ | CPSR_ENABLE_INT)
 msr	cpsr, r0	/* change to FIQ mode */
 ldr	sp, =0x6000	/* set FIQ mode stack pointer */
 
-mov	r0, #CPSR_MODE_SYS | CPSR_ENABLE_INT
+mov	r0, #(CPSR_MODE_SYS | CPSR_ENABLE_INT)
 msr	cpsr, r0	/* change to system mode */
 ldr	sp, =0x5000	/* set user/system mode stack pointer */
 
-mov	r0, #CPSR_MODE_UND | CPSR_ENABLE_INT
+mov	r0, #(CPSR_MODE_UND | CPSR_ENABLE_INT)
 msr	cpsr, r0	/* change to undefined instruction mode */
 ldr	sp, =0x4000	/* set undefined instruction mode stack pointer */
 
-mov	r0, #CPSR_MODE_ABT | CPSR_ENABLE_INT
+mov	r0, #(CPSR_MODE_ABT | CPSR_ENABLE_INT)
 msr	cpsr, r0	/* change to abort mode */
 ldr	sp, =0x3000	/* set abort mode stack pointer */
 
+mov	r0, #(CPSR_MODE_SVC | CPSR_ENABLE_INT)
+msr	cpsr, r0	/* return to supervisor mode */
+
 /*
- * Copy the vector table from .text to its home at 0x0.
+ * Copy the vector table from .text to its home at 0x0. The following
+ * instructions copy the 16 words starting at the label `vectors' into the
+ * first 16 words in memory. As explained above, the first 8 words are the
+ * vectors and the second 8 words are the addresses of the handlers.
  */
 ldr	r0, =vectors	/* address of vector table (in .text) */
 mov	r1, #0		/* address to which we will copy vector table (0x0) */
@@ -160,14 +176,25 @@ stmia	r1!, {r2-r9}	/* copy all vectors */
 ldmia	r0!, {r2-r9}	/* load all handlers */
 stmia	r1!, {r2-r9}	/* copy all handlers */
 
-/* mov	r0, #CPSR_MODE_SVC &~ CPSR_ENABLE_INT */
-mov	r0, #CPSR_MODE_SVC & CPSR_ENABLE_INT
-msr	cpsr, r0	/* enable interrupts and return to supervisor mode */
-
-b	slice_main	/* transfer control to OS */
+/*
+ * Allow the ARM core to receive interrupts
+ */
+mrs	r0, cpsr			/* read CPSR */
+orr	r0, r0, #CPSR_ENABLE_INT	/* set interrupt bits (disable) */
+/*bic	r0, r0, #CPSR_ENABLE_INT	/* clear interrupt bits (enable) */
+msr	cpsr, r0			/* write CPSR */
 
 /*
- * interrupt handlers
+ * Allow the peripherals to generate interrupts
+ */
+
+/*
+ * Branch to kernel entry
+ */
+b	slice_main
+
+/*
+ * Interrupt handlers
  *
  * When the ARM Core receives an interrupt request, it disables interrupts
  * and switches to corresponding mode (copying the user's CPSR into the
