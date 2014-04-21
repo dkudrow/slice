@@ -4,9 +4,11 @@ inclusion in the OS.
 
 *src/start.S* -- The entry point into the OS - the first code that gets
 executed once the kernel image is loaded into memory. It does some
-low-level initialization before passing control off to the OS main. 
+low-level initialization before passing control off to the OS main.
 
-*src/main.c* -- The main function for the OS.
+*src/main.c* -- The `main' function for the OS.
+
+*src/irq.c* -- IRQ interrupt handler.
 
 *src/timer.c* -- An interface to the system timer (not the ARM Core timer!)
 
