@@ -20,7 +20,7 @@
 #include "../util/list.h"
 
 /*
- * This macro determines the allocation algorithm used. Choices are:
+ * This macro determines the (de)allocation algorithm used. Choices are:
  *	- First fit (get_first_free_seg)
  */
 #define get_free_seg(size) get_first_free_seg(size)
@@ -34,6 +34,7 @@ struct malloc_t {
 
 void malloc_init(void *start, size_t size);
 void *malloc(size_t size);
+void free(void *ptr);
 void malloc_dump(void *start, size_t size);
 
 #endif /* MALLOC_H */

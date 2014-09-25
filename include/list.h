@@ -94,13 +94,13 @@ static inline void list_replace(struct list_t *node, struct list_t *rep)
  * Get pointer to next item
  */
 #define list_next_item(item, field) \
-	list_item((item)->list.next, typeof(*item), field)
+	list_item((item)->field.next, typeof(*item), field)
 
 /*
  * Get pointer to previous item
  */
 #define list_prev_item(item, field) \
-	list_item((item)->list.prev, typeof(*item), field)
+	list_item((item)->field.prev, typeof(*item), field)
 
 /*
  * Iterate over every item in list

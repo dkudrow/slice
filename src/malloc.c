@@ -17,7 +17,7 @@
 
 #include "malloc.h"
 
-static struct list_t malloc_list;
+static struct list_t malloc_list; /* -> heap_list */
 static struct list_t free_list;
 static struct list_t used_list;
 
@@ -39,7 +39,7 @@ void malloc_init(void *start, size_t size)
 /*
  * First fit allocation
  */
-struct malloc_t *get_first_free_seg(size_t size)
+static inline struct malloc_t *get_first_free_seg(size_t size)
 {
 	struct malloc_t *free_seg;
 	list_find_item(free_seg, &free_list, f_list, free_seg->size >= size);
@@ -73,6 +73,25 @@ void *malloc(size_t size)
  */
 void free(void *ptr)
 {
+	struct malloc_t *prev_seg, *next_seg, *ptr_seg;
+	list_find_item(ptr_seg, &used_list, f_list, (void *)(ptr_seg+1) == ptr);
+	if (ptr_seg == NULL)
+		return; /* FIXME: fails silently */
+	list_remove(&ptr_seg->f_list);
+	prev_seg = list_prev_item(ptr_seg, list);
+	next_seg = list_next_item(ptr_seg, list);
+	if (&next_seg->list != &malloc_list && next_seg->free) {
+		ptr_seg->size += next_seg->size + sizeof(struct malloc_t);
+		list_remove(&next_seg->list);
+		list_remove(&next_seg->f_list);
+	}
+	if (&prev_seg->list != &malloc_list && prev_seg->free) {
+		prev_seg->size += ptr_seg->size + sizeof(struct malloc_t);
+		list_remove(&ptr_seg->list);
+	} else {
+		ptr_seg->free = 1;
+		list_insert_after(&free_list, &ptr_seg->f_list);
+	}
 }
 
 void malloc_dump(void *start, size_t size)
