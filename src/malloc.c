@@ -50,9 +50,7 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include <stdio.h>
-
-#include "malloc.h"
+#include <malloc.h>
 
 static struct list_t heap_list;
 static struct list_t free_list;
@@ -119,6 +117,34 @@ static inline struct malloc_t *get_best_fit_seg(size_t size)
 }
 
 /*
+ * worst fit allocation
+ */
+static inline struct malloc_t *get_worst_fit_seg(size_t size)
+{
+	size_t diff, max;
+	struct malloc_t *free_seg, *best_seg;
+
+	/* find the first free segment that is large enough */
+	list_find_item(best_seg, &free_list, free_list, best_seg->size >= size);
+	if (best_seg == NULL)
+		return NULL; /* there are no segments large enough */
+	max = best_seg->size - size;
+
+	/* compare the remaining segments to find the closest match */
+	list_foreach_item(free_seg, &best_seg->free_list, free_list) {
+		if (free_seg->size > size) {
+			diff = free_seg->size - size;
+			if (diff > max) {
+				best_seg = free_seg;
+				max = diff;
+			}
+		}
+	}
+
+	return best_seg;
+}
+
+/*
  * allocate memory
  */
 void *malloc(size_t size)
@@ -177,27 +203,4 @@ void free(void *ptr)
 		ptr_seg->free = 1;
 		list_insert_after(&free_list, &ptr_seg->free_list);
 	}
-}
-
-/*
- * pretty print the state of the heap
- */
-void malloc_dump(void *start, size_t size)
-{
-	int total_mallocs=0, free_mallocs=0, used_mallocs=0;
-	size_t free_mem=0, used_mem=0;
-	struct list_t *iter;
-	list_foreach(&heap_list, iter) {
-		struct malloc_t *cur_malloc = container_of(iter, struct malloc_t, heap_list);
-		++total_mallocs;
-		if (cur_malloc->free == 0) {
-			++used_mallocs;
-			used_mem += cur_malloc->size;
-		} else {
-			++free_mallocs;
-			free_mem += cur_malloc->size;
-		}
-	}
-	printf("Segments:\t%d free (%lu bytes)\t%d used (%lu bytes)\n", free_mallocs, free_mem, used_mallocs, used_mem);
-	printf("Consistency:\tSegmentation [%s]\tMemory [%s]\n", (free_mallocs+used_mallocs == total_mallocs) ? "OK" : "BAD", (used_mem+free_mem+total_mallocs*sizeof(struct malloc_t) == size) ? "OK" : "BAD");
 }

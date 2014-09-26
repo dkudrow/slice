@@ -34,9 +34,9 @@ ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
 #~=======================================================================~#
 
 #~==== local compilation tools ==========================================~#
-CC = gcc
+CC = clang
 
-CFLAGS = -g -I$(INCLUDE)
+CFLAGS = -Wall -g -I$(INCLUDE)
 #~=======================================================================~#
 
 #~==== define objects ===================================================~#
@@ -83,6 +83,9 @@ $(BUILD):
 
 test_console:
 	$(CC) $(CFLAGS) $(SOURCE)console.c $(TEST)framebuffer.c $(TEST)main.c -o $@
+
+test_malloc: $(INCLUDE)/malloc.h $(SOURCE)/malloc.c $(TEST)/malloc.c
+	$(CC) $(CFLAGS) -DTEST $(SOURCE)/malloc.c $(TEST)malloc.c -o $@
 
 clean:
 	rm -rf $(BUILD)*

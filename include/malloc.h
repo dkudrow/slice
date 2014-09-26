@@ -16,15 +16,16 @@
 #ifndef MALLOC_H
 #define MALLOC_H
 
-#include <stddef.h> /* need this for size_t */
-#include "../util/list.h"
+#include <types.h>
+#include <list.h>
 
 /*
  * This macro determines the allocation algorithm used. Choices are:
  *	- get_first_fit_seg 
  *	- get_best_fit_seg
+ *	- get_worst_fit_seg
  */
-#define get_free_seg(size) get_best_fit_seg(size)
+#define get_free_seg(size) get_worst_fit_seg(size)
 
 struct malloc_t {
 	int free;			/* 0 if the segment is in use */
