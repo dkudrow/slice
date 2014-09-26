@@ -44,8 +44,8 @@
  * heap_list are consecutive in memory. free_list and used_list keep
  * track of free and used segments respectively in the order they are
  * (de)allocated. Note that the same list node in malloc_t is used for both
- * of these lists (this is safe because a segment cannot be in both lists
- * simultaneously.)
+ * of these lists which we call free_list for no particular reason (this is
+ * safe because a segment cannot be in both lists simultaneously.)
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
@@ -204,3 +204,4 @@ void free(void *ptr)
 		list_insert_after(&free_list, &ptr_seg->free_list);
 	}
 }
+

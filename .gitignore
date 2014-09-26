@@ -1,13 +1,16 @@
-# ignore the build directory
+# build directory
 build/
 
-# ignore the executable and make output
+# executable and make output
 *.list
 *.map
 *.img
 
-# ignore vim bakcup files
+# vim bakcup files
 .*.swp
 
-# ignore references
+# references
 refs/
+
+# test executables
+test_*
