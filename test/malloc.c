@@ -1,6 +1,6 @@
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
- * src/malloc.c
+ * test/malloc.c
  *
  * Tests for malloc
  *
@@ -15,10 +15,11 @@
 
 #include <stdio.h>
 #include <malloc.h>
+#include "test.h"
 
-#define HEAP_SIZE 1024
+#define HSIZE 1024
 
-char HEAP[HEAP_SIZE];
+char HEAP[HSIZE];
 
 struct malloc_info_t {
 	int total_seg;
@@ -29,45 +30,55 @@ struct malloc_info_t {
 	size_t used_mem;
 };
 
+#define MSIZE (sizeof(struct malloc_t))
+
+#define malloc_info_set(info, ts, fs, us, tm, fm, um) \
+{ \
+	info.total_seg = ts; \
+	info.free_seg = fs; \
+	info.used_seg = us; \
+	info.total_mem = tm; \
+	info.free_mem = fm; \
+	info.used_mem = um; \
+}
+
+#define malloc_info_eq(expect, result) \
+	(\
+	 expect.total_seg == result.total_seg && \
+	 expect.free_seg== result.free_seg && \
+	 expect.used_seg== result.used_seg && \
+	 expect.total_mem == result.total_mem && \
+	 expect.free_mem == result.free_mem && \
+	 expect.used_mem == result.used_mem \
+	)
+
 struct malloc_info_t malloc_info()
 {
-	struct malloc_info_t info = { 0, 0, 0, 0, 0, 0 }, *pinfo=&info;
+	struct malloc_info_t info = { 0, 0, 0, 0, 0, 0 };
 	struct list_t *iter, *heap_list=((struct malloc_t *)HEAP)->heap_list.prev;
 	list_foreach(heap_list, iter) {
 		struct malloc_t *cur_malloc = container_of(iter, struct malloc_t, heap_list);
-		++pinfo->total_seg;
+		++info.total_seg;
 		if (cur_malloc->free == 0) {
-			++pinfo->used_seg;
-			pinfo->used_mem += cur_malloc->size;
+			++info.used_seg;
+			info.used_mem += cur_malloc->size;
 		} else {
-			++pinfo->free_seg;
-			pinfo->free_mem += cur_malloc->size;
+			++info.free_seg;
+			info.free_mem += cur_malloc->size;
 		}
 	}
+	info.total_mem  = info.used_mem + info.free_mem + info.total_seg*MSIZE;
 	return info;
 }
 
 int main(void) {
-	int i;
-	void *ptrs[8];
+	struct malloc_info_t info, expect;
 
-	printf("Initalizing heap\n================\n");
-	malloc_init(HEAP, HEAP_SIZE);
-
-	printf("Freeing random memory\n=====================\n");
-	free(HEAP);
-
-	printf("Making 8 allocations of 64 bytes\n================================\n");
-	for (i=0; i<8; i++)
-		ptrs[i] = malloc(64);
-
-	printf("Freeing 4 allocations of 64 bytes\n=================================\n");
-	for (i=1; i<8; i+=2)
-		free(ptrs[i]);
-
-	printf("Freeing 4 allocations of 64 bytes\n=================================\n");
-	for (i=0; i<8; i+=2)
-		free(ptrs[i]);
+	TEST_PRE("Initializing heap");
+	malloc_init(HEAP, HSIZE);
+	malloc_info_set(expect, 1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	info = malloc_info();
+	TEST_POST(malloc_info_eq(expect, info));
 
 	return 0;
 }
