@@ -18,10 +18,13 @@
 
 #include <stdio.h>
 
-#define TEST_PRE(name) \
-	printf("%s ... ", name);
-
-#define TEST_POST(result) \
-	printf("[%s]\n", (result) ? "PASS" : "FAIL");
+static inline void test_run(char *name, char *result)
+{
+	printf("[%s]\t", name);
+	if (result == NULL)
+		printf("passed all tests\n");
+	else
+		printf("failed test '%s'\n", result);
+}
 
 #endif /* TEST_H */

@@ -13,11 +13,13 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include <stdio.h>
 #include <malloc.h>
+/*#include <util.h>*/
+
 #include "test.h"
 
-#define HSIZE 1024
+#define MSIZE (sizeof(struct malloc_t))
+#define HSIZE ((MSIZE+64) * 10)
 
 char HEAP[HSIZE];
 
@@ -30,27 +32,25 @@ struct malloc_info_t {
 	size_t used_mem;
 };
 
-#define MSIZE (sizeof(struct malloc_t))
-
-#define malloc_info_set(info, ts, fs, us, tm, fm, um) \
-{ \
-	info.total_seg = ts; \
-	info.free_seg = fs; \
-	info.used_seg = us; \
-	info.total_mem = tm; \
-	info.free_mem = fm; \
-	info.used_mem = um; \
-}
-
 #define malloc_info_eq(expect, result) \
-	(\
-	 expect.total_seg == result.total_seg && \
+	( expect.total_seg == result.total_seg && \
 	 expect.free_seg== result.free_seg && \
 	 expect.used_seg== result.used_seg && \
 	 expect.total_mem == result.total_mem && \
 	 expect.free_mem == result.free_mem && \
-	 expect.used_mem == result.used_mem \
-	)
+	 expect.used_mem == result.used_mem )
+
+struct malloc_info_t malloc_info_init(int ts, int fs, int us, size_t tm, size_t fm, size_t um)
+{
+	struct malloc_info_t info;
+	info.total_seg = ts;
+	info.free_seg = fs;
+	info.used_seg = us;
+	info.total_mem = tm;
+	info.free_mem = fm;
+	info.used_mem = um;
+	return info;
+}
 
 struct malloc_info_t malloc_info()
 {
@@ -71,14 +71,114 @@ struct malloc_info_t malloc_info()
 	return info;
 }
 
-int main(void) {
+char *malloc_test()
+{
+	int i;
+	char *ptr[100];
 	struct malloc_info_t info, expect;
 
-	TEST_PRE("Initializing heap");
+	/* initializing heap */
 	malloc_init(HEAP, HSIZE);
-	malloc_info_set(expect, 1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	expect = malloc_info_init(1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
 	info = malloc_info();
-	TEST_POST(malloc_info_eq(expect, info));
+	if (!malloc_info_eq(expect, info))
+		return "initializing heap";
+
+	/* freeing an unused segment */
+	free(HEAP+MSIZE);
+	expect = malloc_info_init(1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "freeing an unused segment";
+
+	/* freeing an invalid pointer */
+	free(HEAP+HSIZE/2);
+	expect = malloc_info_init(1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "freeing an invalid pointer";
+
+	/* allocating the first segment */
+	ptr[0] = malloc(64);
+	expect = malloc_info_init(2, 1, 1, HSIZE, HSIZE-64-2*MSIZE, 64);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "allocating the first segment";
+
+	/* freeing the first segment */
+	free(ptr[0]);
+	expect = malloc_info_init(1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "freeing the first segment";
+
+	/* allocating multiple segments */
+	for (i=0; i<4; i++)
+		ptr[i] = malloc(64);
+	expect = malloc_info_init(5, 1, 4, HSIZE, HSIZE-4*64-5*MSIZE, 4*64);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "allocating multiple segments";
+
+	/* merging freed segment with previous */
+	malloc_init(HEAP, HSIZE);
+	for (i=0; i<3; i++)
+		ptr[i] = malloc(64);
+	free(ptr[0]);
+	free(ptr[1]);
+	expect = malloc_info_init(3, 2, 1, HSIZE, HSIZE-64-3*MSIZE, 64);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "merging freed segment with previous";
+
+	/* freeing multiple segments */
+	malloc_init(HEAP, HSIZE);
+	for (i=0; i<4; i++)
+		ptr[i] = malloc(64);
+	for (i=0; i<4; i++)
+		free(ptr[i]);
+	expect = malloc_info_init(1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "freeing multiple segments";
+
+	/* filling all memory */
+	for (i=0; i<10; i++)
+		ptr[i] = malloc(64);
+	expect = malloc_info_init(10, 0, 10, HSIZE, 0, 64*10);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "filling all memory";
+
+	/* allocating from full heap */
+	ptr[10] = (char *)0xDEADBEEF;
+	ptr[10] = malloc(64);
+	if (ptr[10] != NULL)
+		return "allocating from full heap";
+
+	/* freeing all memory */
+	for (i=0; i<10; i++)
+		free(ptr[i]);
+	expect = malloc_info_init(1, 1, 0, HSIZE, HSIZE-MSIZE, 0);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "freeing all memory";
+
+	/* allocating w/out memory for new header */
+	ptr[0] = malloc(10);
+	ptr[1] = malloc(HSIZE-2*MSIZE-10);
+	free(ptr[0]);
+	ptr[0] = malloc(5); /* will actually get 10 bytes */
+	expect = malloc_info_init(2, 0, 2, HSIZE, 0, HSIZE-2*MSIZE);
+	info = malloc_info();
+	if (!malloc_info_eq(expect, info))
+		return "allocating w/out memory for new header";
+
+	return NULL;
+}
+
+int main(void) {
+	test_run("MALLOC", malloc_test());
 
 	return 0;
 }
