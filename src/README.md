@@ -30,3 +30,5 @@ controller)
 
 *src/led.c* -- Some routines to control the BCM2835 LED's. Handy for
 debugging before the framebuffer is online.
+
+*src/malloc.c* -- An implementation of malloc to allow dynamic memory allocation.
