@@ -16,20 +16,21 @@
 #ifndef MALLOC_H
 #define MALLOC_H
 
-#include <stddef.h>
+#include <stddef.h> /* need this for size_t */
 #include "../util/list.h"
 
 /*
- * This macro determines the (de)allocation algorithm used. Choices are:
- *	- First fit (get_first_free_seg)
+ * This macro determines the allocation algorithm used. Choices are:
+ *	- get_first_fit_seg 
+ *	- get_best_fit_seg
  */
-#define get_free_seg(size) get_first_free_seg(size)
+#define get_free_seg(size) get_best_fit_seg(size)
 
 struct malloc_t {
-	int free;		/* 0 if the segment is in use */
-	size_t size;		/* size of segment */
-	struct list_t list;	/* list of all malloc segment */
-	struct list_t f_list;	/* list of free/used malloc segment */
+	int free;			/* 0 if the segment is in use */
+	size_t size;			/* size of segment */
+	struct list_t heap_list;	/* list of all malloc segment */
+	struct list_t free_list;	/* list of free/used malloc segment */
 };
 
 void malloc_init(void *start, size_t size);

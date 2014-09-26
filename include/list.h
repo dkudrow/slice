@@ -91,6 +91,12 @@ static inline void list_replace(struct list_t *node, struct list_t *rep)
 	container_of(node, type, field)
 
 /*
+ * Get first item or NULL if empty
+ */
+#define list_first_item(head, type, field) \
+	(list_empty(head) ? NULL : list_item((head)->next, type, field))
+
+/*
  * Get pointer to next item
  */
 #define list_next_item(item, field) \
