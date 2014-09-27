@@ -25,3 +25,9 @@ prototypes.
 *include/timer.h* -- system timer function prototypes
 
 *include/util.h* -- miscellaneous utilities.
+
+*include/types.h* -- some basic C types and macros that are normally found in stddef.h or similar.
+
+*include/list.h* -- a Linux style circular linked list.
+
+*include/malloc.h* -- an implementation of malloc for dynamic memory allocation.
