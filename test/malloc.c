@@ -14,14 +14,11 @@
  */
 
 #include <malloc.h>
-/*#include <util.h>*/
-
-#include "test.h"
 
 #define MSIZE (sizeof(struct malloc_t))
 #define HSIZE ((MSIZE+64) * 10)
 
-char HEAP[HSIZE];
+static char HEAP[HSIZE];
 
 struct malloc_info_t {
 	int total_seg;
@@ -32,15 +29,15 @@ struct malloc_info_t {
 	size_t used_mem;
 };
 
-#define malloc_info_eq(expect, result) \
-	( expect.total_seg == result.total_seg && \
-	 expect.free_seg== result.free_seg && \
-	 expect.used_seg== result.used_seg && \
-	 expect.total_mem == result.total_mem && \
-	 expect.free_mem == result.free_mem && \
-	 expect.used_mem == result.used_mem )
+#define malloc_info_eq(expect, result) (\
+		expect.total_seg == result.total_seg && \
+		expect.free_seg == result.free_seg && \
+		expect.used_seg == result.used_seg && \
+		expect.total_mem == result.total_mem && \
+		expect.free_mem == result.free_mem && \
+		expect.used_mem == result.used_mem)
 
-struct malloc_info_t malloc_info_init(int ts, int fs, int us, size_t tm, size_t fm, size_t um)
+static struct malloc_info_t malloc_info_init(int ts, int fs, int us, size_t tm, size_t fm, size_t um)
 {
 	struct malloc_info_t info;
 	info.total_seg = ts;
@@ -52,7 +49,7 @@ struct malloc_info_t malloc_info_init(int ts, int fs, int us, size_t tm, size_t 
 	return info;
 }
 
-struct malloc_info_t malloc_info()
+static struct malloc_info_t malloc_info()
 {
 	struct malloc_info_t info = { 0, 0, 0, 0, 0, 0 };
 	struct list_t *iter, *heap_list=((struct malloc_t *)HEAP)->heap_list.prev;
@@ -175,10 +172,4 @@ char *malloc_test()
 		return "allocating w/out memory for new header";
 
 	return NULL;
-}
-
-int main(void) {
-	test_run("MALLOC", malloc_test());
-
-	return 0;
 }

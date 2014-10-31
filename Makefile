@@ -25,7 +25,6 @@ ARMLD = $(ARM)-ld
 OBJCOPY = $(ARM)-objcopy
 OBJDUMP = $(ARM)-objdump
 ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
-
 ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE)\
 		   	-ffreestanding -nostartfiles\
 		   	-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
@@ -35,7 +34,6 @@ ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
 
 #~==== local compilation tools ==========================================~#
 CC = clang
-
 CFLAGS = -Wall -g -I$(INCLUDE)
 #~=======================================================================~#
 
@@ -81,15 +79,32 @@ $(BUILD)%.o: $(SOURCE)%.S $(BUILD)
 $(BUILD):
 	mkdir -p $@
 
-test_console:
-	$(CC) $(CFLAGS) $(SOURCE)console.c $(TEST)framebuffer.c $(TEST)main.c -o $@
+#~==== define test objects ==============================================~#
+TESTOBJ := $(patsubst $(TEST)%,%,$(wildcard $(TEST)*.c))
+TESTOBJ := $(filter-out main.c, $(TESTOBJ))
+TESTOBJ := $(foreach NAME, $(TESTOBJ), $(wildcard $(SOURCE)$(NAME)))
+TESTOBJ := $(patsubst $(SOURCE)%.c,$(BUILD)local-%.o, $(TESTOBJ))
+TESTOBJ += $(patsubst $(TEST)%.c,$(BUILD)test-%.o,$(wildcard $(TEST)*.c))
+#~=======================================================================~#
 
-test_malloc: $(INCLUDE)/malloc.h $(SOURCE)/malloc.c $(TEST)/malloc.c $(TEST)/test.h
-	$(CC) $(CFLAGS) -DTEST $(SOURCE)/malloc.c $(TEST)/malloc.c -o $@
+#~==== define test targets ==============================================~#
+TESTS = run_tests
+#~=======================================================================~#
+
+test: $(TESTS)
+
+$(TESTS): $(TESTOBJ)
+	$(CC) $(CFLAGS) $(TESTOBJ) -o run_tests
+
+$(BUILD)test-%.o: $(TEST)%.c $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)local-%.o: $(SOURCE)%.c $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD)*
 	rm -f $(IMAGE)
 	rm -f $(LIST)
 	rm -f $(MAP)
-	rm -f test_*
+	rm -f $(TESTS)

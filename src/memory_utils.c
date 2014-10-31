@@ -28,3 +28,14 @@ void memset(void *dst, unsigned char c, unsigned size)
 	for (i=0; i<size; i++)
 		((unsigned char *)dst)[i] = c;
 }
+
+int strcmp(char *str1, char *str2)
+{
+	while (*str1 == *str2) {
+		if (*str1 == '\0')
+			return 1;
+		str1++;
+		str2++;
+	}
+	return 0;
+}
