@@ -15,7 +15,8 @@
 
 #include <rbtree.h>
 
-#define TEST_SIZE 100
+#define TEST_SIZE 26
+#define rbtree_test_clear(tree) (tree)->root = NULL
 
 struct rbtree_test_t {
 	int key;
@@ -24,11 +25,9 @@ struct rbtree_test_t {
 
 static int rbtree_test_insert(struct rb_tree_t *tree, struct rbtree_test_t *ins)
 {
-
 	int ins_key = ins->key;
 	struct rb_node_t *parent=tree->root, **cur=&tree->root;
 
-	/* find insertion point */
 	while (*cur != NULL) {
 		parent = *cur;
 		int cur_key = rb_item(parent, struct rbtree_test_t, rb_node)->key;
@@ -40,10 +39,7 @@ static int rbtree_test_insert(struct rb_tree_t *tree, struct rbtree_test_t *ins)
 			return -1;
 	}
 
-	/* link the node into the tree */
 	rb_link(&ins->rb_node, parent, cur);
-
-	/* enforce red-black properties */
 	rb_insert(tree, &ins->rb_node);
 
 	return 0;
@@ -76,8 +72,6 @@ static int rbtree_test_preorder(struct rb_tree_t *tree, char* expected, char *re
 	return 0;
 }
 
-#define rbtree_test_clear(tree) (tree)->root = NULL
-
 char *rbtree_test()
 {
 	struct rb_tree_t rbtree;
@@ -89,17 +83,15 @@ char *rbtree_test()
 	for (i=0; i<TEST_SIZE; i++)
 		items[i].key = i;
 
-	/* Inserts */
+	/* Insertion tests */
 
 	/* Case 0) empty tree */
-	/* Expected: A */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[0]);
 	if (rbtree_test_preorder(&rbtree, "A", buf) == 0)
 		return "insert case 0";
 
 	/* Case 1) black parent */
-	/* Expected: BAC */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[1]);
 	rbtree_test_insert(&rbtree, &items[0]);
@@ -108,7 +100,6 @@ char *rbtree_test()
 		return "insert case 1";
 
 	/* Case 2) red uncle */
-	/* Expected: BACD */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[1]);
 	rbtree_test_insert(&rbtree, &items[0]);
@@ -118,7 +109,6 @@ char *rbtree_test()
 		return "insert case 2";
 
 	/* Case 3) parent is left child, node is right child */
-	/* Expected: BADCE */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[1]);
 	rbtree_test_insert(&rbtree, &items[0]);
@@ -129,7 +119,6 @@ char *rbtree_test()
 		return "insert case 3";
 
 	/* Case 4) parent is left child, node is left child */
-	/* Expected: BADCE */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[1]);
 	rbtree_test_insert(&rbtree, &items[0]);
@@ -140,7 +129,6 @@ char *rbtree_test()
 		return "insert case 4";
 
 	/* Case 5) parent is right child, node is left child */
-	/* Expected: DBACE */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[3]);
 	rbtree_test_insert(&rbtree, &items[4]);
@@ -151,7 +139,6 @@ char *rbtree_test()
 		return "insert case 5";
 
 	/* Case 6) parent is right child, node is right child */
-	/* Expected: DBACE */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[3]);
 	rbtree_test_insert(&rbtree, &items[4]);

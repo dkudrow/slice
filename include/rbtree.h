@@ -21,8 +21,19 @@
 #define RB_RED 0
 #define RB_BLACK 1
 
+/*
+ * Get a pointer to the recording containing the node
+ */
 #define rb_item(node, type, field) container_of(node, type, field)
+
+/*
+ * Get a pointer to the link to a node from it's parent
+ */
 #define rb_child_ptr(n, p) ((p)->left == (n) ? &(p)->left : &(p)->right)
+
+/*
+ * Get a pointer to a node's uncle
+ */
 #define rb_uncle(p, g) ((g)->left == (p) ? (g)->right : (g)->left)
 
 struct rb_node_t {
@@ -36,11 +47,17 @@ struct rb_tree_t {
 	struct rb_node_t *root;
 };
 
+/*
+ * Initialize a red-black tree
+ */
 static inline void rb_tree_init(struct rb_tree_t *tree)
 {
 	tree->root = NULL;
 }
 
+/*
+ * Link a new node into the tree
+ */
 static inline void rb_link(struct rb_node_t *node, struct rb_node_t *parent, struct rb_node_t **link)
 {
 	node->color = RB_RED;
@@ -50,6 +67,9 @@ static inline void rb_link(struct rb_node_t *node, struct rb_node_t *parent, str
 	*link = node;
 }
 
+/*
+ * Return the next node in the tree
+ */
 static inline struct rb_node_t* rb_next(struct rb_node_t *node)
 {
 	if (node->right != NULL) {
@@ -64,6 +84,9 @@ static inline struct rb_node_t* rb_next(struct rb_node_t *node)
 	return node->parent;
 }
 
+/*
+ * Return the previous node in the tree
+ */
 static inline struct rb_node_t* rb_prev(struct rb_node_t *node)
 {
 	if (node->left != NULL) {
@@ -79,6 +102,8 @@ static inline struct rb_node_t* rb_prev(struct rb_node_t *node)
 }
 
 /*
+ * Perform a left or right subtree rotation
+ *
  *	    B   --> right(B) -->   A
  *	   / \                    / \
  *	  A   c                  a   B
@@ -111,6 +136,9 @@ static inline void rb_rotate_right(struct rb_node_t **Bptr)
 	*Bptr = A;
 }
 
+/*
+ * Enforce red-black tree properties on a tree with a newly inserted node
+ */
 static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
 {
 	struct rb_node_t *cur = ins;

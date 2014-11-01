@@ -13,4 +13,4 @@ build/
 refs/
 
 # test executables
-test_*
+run_tests
