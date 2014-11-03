@@ -187,9 +187,9 @@ static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
 
 		/* Case 2) uncle is red */
 		if (rb_red(uncle)) {
-			grand->color = RB_BLACK;
-			parent->color = RB_RED;
-			uncle->color = RB_RED;
+			grand->color = RB_RED;
+			parent->color = RB_BLACK;
+			uncle->color = RB_BLACK;
 			cur = grand;
 			continue;
 		}
@@ -198,23 +198,37 @@ static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
 
 		if (grand->left == parent) {
 			/* Case 3) parent is left child, node is right child */
-			if (parent->right == cur)
+			if (parent->right == cur) {
 				rb_rotate_left(&grand->left);
+				rb_rotate_right(great);
+				cur->color = RB_BLACK;
+				grand->color = RB_RED;
+			}
 
 			/* Case 4) parent is left child, node is left child */
-			rb_rotate_right(great);
+			else {
+				rb_rotate_right(great);
+				parent->color = RB_BLACK;
+				grand->color = RB_RED;
+			}
 		}
 
 		else {
 			/* Case 5) parent is right child, node is left child */
-			if (parent->left == cur)
+			if (parent->left == cur) {
 				rb_rotate_right(&grand->right);
+				rb_rotate_left(great);
+				cur->color = RB_BLACK;
+				grand->color = RB_RED;
+			}
 
 			/* Case 6) parent is right child, node is right child */
-			rb_rotate_left(great);
+			else {
+				rb_rotate_left(great);
+				parent->color = RB_BLACK;
+				grand->color = RB_RED;
+			}
 		}
-		parent->color = RB_BLACK;
-		grand->color = RB_RED;
 		break;
 	}
 }

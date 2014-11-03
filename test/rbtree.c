@@ -47,8 +47,13 @@ static int rbtree_test_insert(struct rb_tree_t *tree, struct rbtree_test_t *ins)
 
 static char *rbtree_test_preorder_r(struct rb_node_t *node, char *result)
 {
+	int key;
 	if (node != NULL) {
-		*result++ = 'A' + rb_item(node, struct rbtree_test_t, rb_node)->key;
+		key = rb_item(node, struct rbtree_test_t, rb_node)->key;
+		if (rb_red(node))
+			*result++ = 'a' + key;
+		else 
+			*result++ = 'A' + key;
 		result = rbtree_test_preorder_r(node->left, result);
 		result = rbtree_test_preorder_r(node->right, result);
 	}
@@ -117,10 +122,9 @@ int rb_enforce(struct rb_tree_t *tree, struct rb_node_t **err)
 char *rbtree_test()
 {
 	struct rb_tree_t rbtree;
-	struct rb_node_t *err;
 	struct rbtree_test_t items[TEST_SIZE];
 	char buf[TEST_SIZE];
-	int i, violation;
+	int i;
 
 	rb_tree_init(&rbtree);
 	for (i=0; i<TEST_SIZE; i++)
@@ -132,22 +136,15 @@ char *rbtree_test()
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[0]);
 	if (rbtree_test_preorder(&rbtree, "A", buf) == 0)
-		return "insert case 0 -- preorder";
-	if (!rb_enforce(&rbtree, &err))
-		return "insert case 0 -- red-black";
+		return "insert case 0";
 
 	/* Case 1) black parent */
 	rbtree_test_clear(&rbtree);
 	rbtree_test_insert(&rbtree, &items[1]);
 	rbtree_test_insert(&rbtree, &items[0]);
 	rbtree_test_insert(&rbtree, &items[2]);
-	if (rbtree_test_preorder(&rbtree, "BAC", buf) == 0)
-		return "insert case 1 -- preorder";
-	violation = rb_enforce(&rbtree, &err);
-	if (violation == ERR_DOUBLE_RED)
-		return "insert case 1 -- double red";
-	if (violation == ERR_BALANCE)
-		return "insert case 1 -- unbalanced";
+	if (rbtree_test_preorder(&rbtree, "Bac", buf) == 0)
+		return "insert case 1";
 
 	/* Case 2) red uncle */
 	rbtree_test_clear(&rbtree);
@@ -155,13 +152,8 @@ char *rbtree_test()
 	rbtree_test_insert(&rbtree, &items[0]);
 	rbtree_test_insert(&rbtree, &items[2]);
 	rbtree_test_insert(&rbtree, &items[3]);
-	if (rbtree_test_preorder(&rbtree, "BACD", buf) == 0)
-		return "insert case 2 -- preorder";
-	violation = rb_enforce(&rbtree, &err);
-	if (violation == ERR_DOUBLE_RED)
-		return "insert case 2 -- double red";
-	if (violation == ERR_BALANCE)
-		return "insert case 2 -- unbalanced";
+	if (rbtree_test_preorder(&rbtree, "BACd", buf) == 0)
+		return "insert case 2";
 
 	/* Case 3) parent is left child, node is right child */
 	rbtree_test_clear(&rbtree);
@@ -170,13 +162,8 @@ char *rbtree_test()
 	rbtree_test_insert(&rbtree, &items[4]);
 	rbtree_test_insert(&rbtree, &items[2]);
 	rbtree_test_insert(&rbtree, &items[3]);
-	if (rbtree_test_preorder(&rbtree, "BADCE", buf) == 0)
-		return "insert case 3 -- preorder";
-	violation = rb_enforce(&rbtree, &err);
-	if (violation == ERR_DOUBLE_RED)
-		return "insert case 3 -- double red";
-	if (violation == ERR_BALANCE)
-		return "insert case 3 -- unbalanced";
+	if (rbtree_test_preorder(&rbtree, "BADce", buf) == 0)
+		return "insert case 3";
 
 	/* Case 4) parent is left child, node is left child */
 	rbtree_test_clear(&rbtree);
@@ -185,13 +172,8 @@ char *rbtree_test()
 	rbtree_test_insert(&rbtree, &items[4]);
 	rbtree_test_insert(&rbtree, &items[3]);
 	rbtree_test_insert(&rbtree, &items[2]);
-	if (rbtree_test_preorder(&rbtree, "BADCE", buf) == 0)
-		return "insert case 4 -- preorder";
-	violation = rb_enforce(&rbtree, &err);
-	if (violation == ERR_DOUBLE_RED)
-		return "insert case 4 -- double red";
-	if (violation == ERR_BALANCE)
-		return "insert case 4 -- unbalanced";
+	if (rbtree_test_preorder(&rbtree, "BADce", buf) == 0)
+		return "insert case 4";
 
 	/* Case 5) parent is right child, node is left child */
 	rbtree_test_clear(&rbtree);
@@ -200,13 +182,8 @@ char *rbtree_test()
 	rbtree_test_insert(&rbtree, &items[0]);
 	rbtree_test_insert(&rbtree, &items[2]);
 	rbtree_test_insert(&rbtree, &items[1]);
-	if (rbtree_test_preorder(&rbtree, "DBACE", buf) == 0)
-		return "insert case 5 -- preorder";
-	violation = rb_enforce(&rbtree, &err);
-	if (violation == ERR_DOUBLE_RED)
-		return "insert case 5 -- double red";
-	if (violation == ERR_BALANCE)
-		return "insert case 5 -- unbalanced";
+	if (rbtree_test_preorder(&rbtree, "DBacE", buf) == 0)
+		return "insert case 5";
 
 	/* Case 6) parent is right child, node is right child */
 	rbtree_test_clear(&rbtree);
@@ -215,13 +192,8 @@ char *rbtree_test()
 	rbtree_test_insert(&rbtree, &items[0]);
 	rbtree_test_insert(&rbtree, &items[1]);
 	rbtree_test_insert(&rbtree, &items[2]);
-	if (rbtree_test_preorder(&rbtree, "DBACE", buf) == 0)
-		return "insert case 6 -- preorder";
-	violation = rb_enforce(&rbtree, &err);
-	if (violation == ERR_DOUBLE_RED)
-		return "insert case 6 -- double red";
-	if (violation == ERR_BALANCE)
-		return "insert case 6 -- unbalanced";
+	if (rbtree_test_preorder(&rbtree, "DBacE", buf) == 0)
+		return "insert case 6";
 
 	return NULL;
 }
