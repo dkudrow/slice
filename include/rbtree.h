@@ -154,12 +154,16 @@ static inline void rb_replace(struct rb_node_t **link,
 	*link = new;
 	new->color = old->color;
 	new->parent = old->parent;
-	new->left = old->left;
-	new->right = old->right;
-	if (old->right != NULL)
-		old->right->parent = new;
-	if (old->left != NULL)
-		old->left->parent = new;
+	if (old->left != new) {
+		new->left = old->left;
+		if (old->left != NULL)
+			old->left->parent = new;
+	}
+	if (old->right != new) {
+		new->right = old->right;
+		if (old->right != NULL)
+			old->right->parent = new;
+	}
 }
 
 /*
@@ -259,101 +263,99 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 			max_left = max_left->right;
 	}
 
-	/* Delete the node */
 	link = rb_ptr(max_left, tree->root);
+	child = max_left->right == NULL ? max_left->left : max_left->right;
 
 	/* Case 0) node is red -- must be leaf so delete it */
 	if (rb_red(max_left)) {
 		*link = NULL;
-		return;
-	}
-
-	child = max_left->left == NULL ? max_left->right : max_left->left;
 
 	/* Case 1) node is black w/ one red child -- replace it with its child */
-	if (rb_red(child)) {
+	} else if (rb_red(child)) {
 		rb_replace(link, max_left, child);
-		return;
-	}
+		if (max_left->parent == NULL)
+			child->color = RB_BLACK;
 
 	/* Node is a black leaf -- remove it and rebalance */
-	*link = NULL;
+	} else {
+		/* remove the leaf */
+		*link = NULL;
 
-	/* rebalance the tree from the bottom up */
-	cur = max_left;
-	while (1) {
-		parent = cur->parent;
+		cur = max_left;
+		while (1) {
+			parent = cur->parent;
 
-		/* Case 2) root node -- we are done */
-		if (parent == NULL)
-			break;
-
-		/* Current node is left child */
-		if (parent->left == cur) {
-			sibling = parent->right;
-
-			/* Sibling is black with red right child */
-			if (rb_red(sibling->right)) {
-				rb_rotate_left(rb_ptr(parent, tree->root));
-				if (rb_black(parent))
-					sibling->right->color = RB_BLACK;
-				else if (rb_red(sibling->left))
-					sibling->left->color = RB_BLACK;
+			/* Case 2) root node -- we are done */
+			if (parent == NULL)
 				break;
-			}
 
-			/* sibling is black with red left child */
-			if (rb_red(sibling->left)) {
-				rb_rotate_right(&parent->right);
-				rb_rotate_left(rb_ptr(parent, tree->root));
-				if (rb_black(parent))
+			/* Current node is left child */
+			if (parent->left == cur) {
+				sibling = parent->right;
+
+				/* Sibling is black with red right child */
+				if (rb_red(sibling->right)) {
+					rb_rotate_left(rb_ptr(parent, tree->root));
+					if (rb_black(parent))
+						sibling->right->color = RB_BLACK;
+					else if (rb_red(sibling->left))
+						sibling->left->color = RB_BLACK;
+					break;
+				}
+
+				/* sibling is black with red left child */
+				if (rb_red(sibling->left)) {
+					rb_rotate_right(&parent->right);
+					rb_rotate_left(rb_ptr(parent, tree->root));
+					if (rb_black(parent))
+						parent->color = RB_BLACK;
+					else
+						sibling->left->color = RB_RED;
+					break;
+				}
+
+				/* sibling is black leaf */
+				sibling->color = RB_RED;
+				if (rb_red(parent)) {
 					parent->color = RB_BLACK;
-				else
-					sibling->left->color = RB_RED;
-				break;
+					break;
+				}
+				cur = cur->parent;
 			}
 
-			/* sibling is black leaf */
-			sibling->color = RB_RED;
-			if (rb_red(parent)) {
-				parent->color = RB_BLACK;
-				break;
-			}
-			cur = cur->parent;
-		}
+			/* current node is LEFT child */
+			else {
+				sibling = parent->left;
 
-		/* current node is LEFT child */
-		else {
-			sibling = parent->left;
+				/* sibling is black with red left child */
+				if (rb_red(sibling->left)) {
+					rb_rotate_right(rb_ptr(parent, tree->root));
+					if (rb_black(parent))
+						sibling->left->color = RB_BLACK;
+					else if (rb_red(sibling->right))
+						sibling->right->color = RB_BLACK;
+					break;
+				}
 
-			/* sibling is black with red left child */
-			if (rb_red(sibling->left)) {
-				rb_rotate_right(rb_ptr(parent, tree->root));
-				if (rb_black(parent))
-					sibling->left->color = RB_BLACK;
-				else if (rb_red(sibling->right))
-					sibling->right->color = RB_BLACK;
-				break;
-			}
+				/* sibling is black with red right child */
+				if (rb_red(sibling->right)) {
+					rb_rotate_left(&parent->left);
+					rb_rotate_right(rb_ptr(parent, tree->root));
+					if (rb_black(parent))
+						parent->color = RB_BLACK;
+					else
+						sibling->right->color = RB_RED;
+					break;
+				}
 
-			/* sibling is black with red right child */
-			if (rb_red(sibling->right)) {
-				rb_rotate_left(&parent->left);
-				rb_rotate_right(rb_ptr(parent, tree->root));
-				if (rb_black(parent))
+				/* sibling is black leaf */
+				sibling->color = RB_RED;
+				if (rb_red(parent)) {
 					parent->color = RB_BLACK;
-				else
-					sibling->right->color = RB_RED;
-				break;
+					break;
+				}
+				cur = parent;
 			}
-
-			/* sibling is black leaf */
-			sibling->color = RB_RED;
-			if (rb_red(parent)) {
-				parent->color = RB_BLACK;
-				break;
-			}
-			cur = parent;
 		}
 	}
 

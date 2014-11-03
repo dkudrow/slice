@@ -166,7 +166,7 @@ char *rbtree_test()
 	rb_test_insert(&rbtree, &items[0]);
 	rb_test_insert(&rbtree, &items[1]);
 	rb_remove(&rbtree, &items[0].rb_node);
-	if (rb_test_preorder(&rbtree, "A", buf) == 0)
+	if (rb_test_preorder(&rbtree, "B", buf) == 0)
 		return "delete case 1";
 
 	return NULL;
