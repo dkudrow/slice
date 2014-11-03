@@ -242,23 +242,27 @@ static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
  * l = s's left child
  * r = s's right child
  *
+ * There's a lot going on here so let's define terms first;
+ * `rem' is the node that we are trying to remove. If it has two children,
+ * then we will replace with the max node in it's left subtree, `max_left'. 
  *
  */
 static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 {
-	struct rb_node_t **link, *max_left, *sibling, *child, *parent, *cur;
+	struct rb_node_t **link, *sibling, *child, *parent, *cur, *max_left=rem;
 
-	max_left = rem;
 
-	/* node has two children */
+	/* Node has two children -- find max of left subtree */
 	if (max_left->left != NULL && max_left->right != NULL) {
-		max_left = max_left->left;
+		max_left = rem->left;
 		while (max_left->right != NULL)
 			max_left = max_left->right;
 	}
+
+	/* Delete the node */
 	link = rb_ptr(max_left, tree->root);
 
-	/* node is red */
+	/* Case 0) node is red -- must be leaf so delete it */
 	if (rb_red(max_left)) {
 		*link = NULL;
 		return;
@@ -266,31 +270,29 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 
 	child = max_left->left == NULL ? max_left->right : max_left->left;
 
-	/* node is black with one red child */
-	/* n C */
+	/* Case 1) node is black w/ one red child -- replace it with its child */
 	if (rb_red(child)) {
 		rb_replace(link, max_left, child);
 		return;
 	}
 
-	/* node is a black leaf */
-	/* -- remove it and rebalance */
+	/* Node is a black leaf -- remove it and rebalance */
 	*link = NULL;
 
-	/* if node is the root, we are done */
-	if (max_left->parent == NULL)
-		return;
-
-	/* rebalance the tree */
+	/* rebalance the tree from the bottom up */
 	cur = max_left;
 	while (1) {
 		parent = cur->parent;
 
-		/* current node is left child */
+		/* Case 2) root node -- we are done */
+		if (parent == NULL)
+			break;
+
+		/* Current node is left child */
 		if (parent->left == cur) {
 			sibling = parent->right;
 
-			/* sibling is black with red right child */
+			/* Sibling is black with red right child */
 			if (rb_red(sibling->right)) {
 				rb_rotate_left(rb_ptr(parent, tree->root));
 				if (rb_black(parent))
@@ -355,7 +357,8 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 		}
 	}
 
-	rb_replace(rb_ptr(rem, tree->root), rem, max_left);
+	if (max_left != rem)
+		rb_replace(rb_ptr(rem, tree->root), rem, max_left);
 }
 
 #endif /* RBTREE_H */
