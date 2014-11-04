@@ -16,6 +16,7 @@
 #include <rbtree.h>
 
 #define TEST_SIZE 26
+
 #define rb_test_clear(tree) (tree)->root = NULL
 
 struct rb_test_t {
@@ -23,6 +24,9 @@ struct rb_test_t {
 	struct rb_node_t rb_node;
 };
 
+/*
+ * insert based on integer key
+ */
 static int rb_test_insert(struct rb_tree_t *tree, struct rb_test_t *ins)
 {
 	int ins_key = ins->key;
@@ -45,12 +49,19 @@ static int rb_test_insert(struct rb_tree_t *tree, struct rb_test_t *ins)
 	return 0;
 }
 
+/*
+ * A pre-order traversal uniquely identifies a binary tree. This function
+ * and its recursive helper generate a string out of the nodes in the
+ * traversal with black nodes as upper case letter and red nodes as lower
+ * case. We use this to test against an expected tree after performing a
+ * set operations.
+ */
 static char *rb_test_preorder_r(struct rb_node_t *node, char *result)
 {
 	int key;
 	if (node != NULL) {
 		key = rb_item(node, struct rb_test_t, rb_node)->key;
-		if (rb_red(node))
+		if (node->color == 0)
 			*result++ = 'a' + key;
 		else 
 			*result++ = 'A' + key;
@@ -77,6 +88,9 @@ static int rb_test_preorder(struct rb_tree_t *tree, char* expected, char *result
 	return 0;
 }
 
+/*
+ * red-black tree tests
+ */ 
 char *rbtree_test()
 {
 	struct rb_tree_t rbtree;
@@ -249,7 +263,7 @@ char *rbtree_test()
 	if (rb_test_preorder(&rbtree, "CBD", buf) == 0)
 		return "delete case 5.1";
 
-	/* Delete case 5.2 -- N P S */
+	/* Delete case 5.2 -- N P S (not child of root) */
 	rb_test_clear(&rbtree);
 	rb_test_insert(&rbtree, &items[7]);
 	rb_test_insert(&rbtree, &items[3]);
