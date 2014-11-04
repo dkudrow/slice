@@ -168,8 +168,8 @@ static inline void rb_replace(struct rb_node_t **link,
  * Insertion into a red-black tree is straightforward. Newly inserted nodes
  * are colored red and inserted as they would be in a normal BST. To
  * maintain the red-black properties we recolor and restructure the tree
- * based on the its position relative to its parent, grandparent and uncle.
- * All cases are terminal except for when the new node's uncle is red in
+ * based on the node's position relative to its parent, grandparent and
+ * uncle. All cases are terminal except for when the node's uncle is red in
  * which case we must iterate up the tree.
  */
 void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
