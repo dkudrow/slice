@@ -169,5 +169,111 @@ char *rbtree_test()
 	if (rb_test_preorder(&rbtree, "B", buf) == 0)
 		return "delete case 1";
 
+	/* Delete case 2) -- singleton tree */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_remove(&rbtree, &items[0].rb_node);
+	if (rb_test_preorder(&rbtree, "", buf) == 0)
+		return "delete case 2";
+
+	/* Delete case 3.1) -- N P S r */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_test_insert(&rbtree, &items[4]);
+	rb_remove(&rbtree, &items[0].rb_node);
+	if (rb_test_preorder(&rbtree, "DBE", buf) == 0)
+		return "delete case 3.1";
+
+	/* Delete case 3.2) -- N p l S r */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[5]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[2]);
+	rb_test_insert(&rbtree, &items[4]);
+	rb_test_insert(&rbtree, &items[7]);
+	rb_test_insert(&rbtree, &items[8]);
+	rb_test_insert(&rbtree, &items[6]);
+	rb_remove(&rbtree, &items[4].rb_node);
+	if (rb_test_preorder(&rbtree, "DBachFgI", buf) == 0)
+		return "delete case 3.2";
+
+	/* Delete case 3.3) -- N p S r */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[5]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[2]);
+	rb_test_insert(&rbtree, &items[4]);
+	rb_test_insert(&rbtree, &items[7]);
+	rb_test_insert(&rbtree, &items[8]);
+	rb_remove(&rbtree, &items[4].rb_node);
+	if (rb_test_preorder(&rbtree, "DBacHfi", buf) == 0)
+		return "delete case 3.3";
+
+	/* Delete case 4.1) -- N P l S */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_test_insert(&rbtree, &items[2]);
+	rb_remove(&rbtree, &items[0].rb_node);
+	if (rb_test_preorder(&rbtree, "CBD", buf) == 0)
+		return "delete case 4.1";
+
+	/* Delete case 4.2) -- N p l S */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[5]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[2]);
+	rb_test_insert(&rbtree, &items[4]);
+	rb_test_insert(&rbtree, &items[7]);
+	rb_test_insert(&rbtree, &items[6]);
+	rb_remove(&rbtree, &items[4].rb_node);
+	if (rb_test_preorder(&rbtree, "DBacgFH", buf) == 0)
+		return "delete case 4.2";
+
+	/* Delete case 5.1) -- N P S */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[2]);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_remove(&rbtree, &items[0].rb_node);
+	if (rb_test_preorder(&rbtree, "CBD", buf) == 0)
+		return "delete case 5.1";
+
+	/* Delete case 5.2 -- N P S */
+	rb_test_clear(&rbtree);
+	rb_test_insert(&rbtree, &items[7]);
+	rb_test_insert(&rbtree, &items[3]);
+	rb_test_insert(&rbtree, &items[11]);
+	rb_test_insert(&rbtree, &items[1]);
+	rb_test_insert(&rbtree, &items[5]);
+	rb_test_insert(&rbtree, &items[9]);
+	rb_test_insert(&rbtree, &items[13]);
+	rb_test_insert(&rbtree, &items[0]);
+	rb_test_insert(&rbtree, &items[2]);
+	rb_test_insert(&rbtree, &items[4]);
+	rb_test_insert(&rbtree, &items[6]);
+	rb_test_insert(&rbtree, &items[8]);
+	rb_test_insert(&rbtree, &items[10]);
+	rb_test_insert(&rbtree, &items[12]);
+	rb_test_insert(&rbtree, &items[14]);
+	rb_test_insert(&rbtree, &items[15]);
+	rb_remove(&rbtree, &items[0].rb_node);
+	rb_remove(&rbtree, &items[2].rb_node);
+	rb_remove(&rbtree, &items[4].rb_node);
+	rb_remove(&rbtree, &items[6].rb_node);
+	rb_remove(&rbtree, &items[1].rb_node);
+	if (rb_test_preorder(&rbtree, "LHDfJikNMOp", buf) == 0)
+		return "delete case 5.2";
+
 	return NULL;
 }

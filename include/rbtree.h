@@ -21,20 +21,39 @@
 #define RB_RED 0
 #define RB_BLACK 1
 
+/*
+ * Red-black tree node
+ */
+struct rb_node_t {
+	int color;
+	struct rb_node_t *parent;
+	struct rb_node_t *left;
+	struct rb_node_t *right;
+};
+
+/*
+ * Red-black tree root
+ */
+struct rb_tree_t {
+	struct rb_node_t *root;
+};
+
+/*
+ * Determine whether a node is red or black -- leaves are black
+ */
 #define rb_red(n) ((n) != NULL &&  (n)->color == RB_RED)
 #define rb_black(n) ((n) == NULL || (n)->color == RB_BLACK)
 
 /*
  * Get a pointer to the recording containing the node
  */
-#define rb_item(node, type, field) container_of(node, type, field)
+#define rb_item(node, type, field) (container_of(node, type, field))
 
 /*
  * Get a pointer to the link to a node from it's parent
  */
 #define rb_ptr(n, r) \
 	((n)->parent ? ((n)->parent->left == (n) ? &(n)->parent->left : &(n)->parent->right) : &r)
-
 
 /*
  * Get a pointer to a node's uncle
@@ -46,17 +65,6 @@
  */
 #define rb_sibling(n) \
 	((n)->parent->left == (n) ? (n)->parent->right : (n)->parent->left)
-
-struct rb_node_t {
-	int color;
-	struct rb_node_t *parent;
-	struct rb_node_t *left;
-	struct rb_node_t *right;
-};
-
-struct rb_tree_t {
-	struct rb_node_t *root;
-};
 
 /*
  * Initialize a red-black tree
@@ -90,7 +98,6 @@ static inline struct rb_node_t* rb_next(struct rb_node_t *node)
 			node = node->left;
 		return node;
 	}
-
 	while (node->parent != NULL && node->parent->left != node)
 		node = node->parent;
 	return node->parent;
@@ -107,22 +114,21 @@ static inline struct rb_node_t* rb_prev(struct rb_node_t *node)
 			node = node->right;
 		return node;
 	}
-
 	while (node->parent != NULL && node->parent->right != node)
 		node = node->parent;
 	return node->parent;
 }
 
 /*
- * Perform a left or right subtree rotation
+ * Rotate a subtree around its root node
  *
- *	    B   --> right(B) -->   A
- *	   / \                    / \
- *	  A   c                  a   B
- *	 / \                        / \
- *	a   b    <-- left(A) <--   b   c
+ *	    B   --> rb_rot_right(B) -->   A
+ *	   / \                           / \
+ *	  A   c                         a   B
+ *	 / \                               / \
+ *	a   b    <-- rb_rot_left(A) <--   b   c
  */
-static inline void rb_rotate_left(struct rb_node_t **Aptr)
+static inline void rb_rot_left(struct rb_node_t **Aptr)
 {
 	struct rb_node_t *A = *Aptr;
 	struct rb_node_t *B = A->right;
@@ -135,7 +141,7 @@ static inline void rb_rotate_left(struct rb_node_t **Aptr)
 	*Aptr = B;
 }
 
-static inline void rb_rotate_right(struct rb_node_t **Bptr)
+static inline void rb_rot_right(struct rb_node_t **Bptr)
 {
 	struct rb_node_t *B = *Bptr;
 	struct rb_node_t *A = B->left;
@@ -148,6 +154,9 @@ static inline void rb_rotate_right(struct rb_node_t **Bptr)
 	*Bptr = A;
 }
 
+/*
+ * Replace one node with another
+ */
 static inline void rb_replace(struct rb_node_t **link,
 		struct rb_node_t *old, struct rb_node_t *new)
 {
@@ -203,15 +212,15 @@ static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
 		if (grand->left == parent) {
 			/* Case 3) parent is left child, node is right child */
 			if (parent->right == cur) {
-				rb_rotate_left(&grand->left);
-				rb_rotate_right(great);
+				rb_rot_left(&grand->left);
+				rb_rot_right(great);
 				cur->color = RB_BLACK;
 				grand->color = RB_RED;
 			}
 
 			/* Case 4) parent is left child, node is left child */
 			else {
-				rb_rotate_right(great);
+				rb_rot_right(great);
 				parent->color = RB_BLACK;
 				grand->color = RB_RED;
 			}
@@ -220,15 +229,15 @@ static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
 		else {
 			/* Case 5) parent is right child, node is left child */
 			if (parent->left == cur) {
-				rb_rotate_right(&grand->right);
-				rb_rotate_left(great);
+				rb_rot_right(&grand->right);
+				rb_rot_left(great);
 				cur->color = RB_BLACK;
 				grand->color = RB_RED;
 			}
 
 			/* Case 6) parent is right child, node is right child */
 			else {
-				rb_rotate_left(great);
+				rb_rot_left(great);
 				parent->color = RB_BLACK;
 				grand->color = RB_RED;
 			}
@@ -241,7 +250,6 @@ static inline void rb_insert(struct rb_tree_t *tree, struct rb_node_t *ins)
  * Capital letter indicates red node
  * n = node to remove
  * p = n's parent
- * c = n's child
  * s = n's sibling
  * l = s's left child
  * r = s's right child
@@ -278,9 +286,6 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 
 	/* Node is a black leaf -- remove it and rebalance */
 	} else {
-		/* remove the leaf */
-		*link = NULL;
-
 		cur = max_left;
 		while (1) {
 			parent = cur->parent;
@@ -293,28 +298,36 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 			if (parent->left == cur) {
 				sibling = parent->right;
 
-				/* Sibling is black with red right child */
+				/* Case 3) Sibling is black with red right child */
 				if (rb_red(sibling->right)) {
-					rb_rotate_left(rb_ptr(parent, tree->root));
-					if (rb_black(parent))
+					/* Case 3.1) N P S r */
+					if (rb_black(parent)) {
 						sibling->right->color = RB_BLACK;
-					else if (rb_red(sibling->left))
-						sibling->left->color = RB_BLACK;
-					break;
-				}
-
-				/* sibling is black with red left child */
-				if (rb_red(sibling->left)) {
-					rb_rotate_right(&parent->right);
-					rb_rotate_left(rb_ptr(parent, tree->root));
-					if (rb_black(parent))
+					/* Case 3.2) N p l S r */
+					} else if (rb_red(sibling->left)) {
 						parent->color = RB_BLACK;
-					else
-						sibling->left->color = RB_RED;
+						sibling->color = RB_RED;
+						sibling->right->color = RB_BLACK;
+					}
+					/* Case 3.3) N p S r */
+					rb_rot_left(rb_ptr(parent, tree->root));
 					break;
 				}
 
-				/* sibling is black leaf */
+				/* Case 4) Sibling is black with red left child */
+				if (rb_red(sibling->left)) {
+					/* Case 4.1) N P l S */
+					if (rb_black(parent))
+						sibling->left->color = RB_BLACK;
+					/* Case 4.2) N p l S */
+					else
+						parent->color = RB_BLACK;
+					rb_rot_right(&parent->right);
+					rb_rot_left(rb_ptr(parent, tree->root));
+					break;
+				}
+
+				/* Case 5) sibling is black leaf */
 				sibling->color = RB_RED;
 				if (rb_red(parent)) {
 					parent->color = RB_BLACK;
@@ -323,13 +336,13 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 				cur = cur->parent;
 			}
 
-			/* current node is LEFT child */
+			/* current node is right child */
 			else {
 				sibling = parent->left;
 
 				/* sibling is black with red left child */
 				if (rb_red(sibling->left)) {
-					rb_rotate_right(rb_ptr(parent, tree->root));
+					rb_rot_right(rb_ptr(parent, tree->root));
 					if (rb_black(parent))
 						sibling->left->color = RB_BLACK;
 					else if (rb_red(sibling->right))
@@ -339,8 +352,8 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 
 				/* sibling is black with red right child */
 				if (rb_red(sibling->right)) {
-					rb_rotate_left(&parent->left);
-					rb_rotate_right(rb_ptr(parent, tree->root));
+					rb_rot_left(&parent->left);
+					rb_rot_right(rb_ptr(parent, tree->root));
 					if (rb_black(parent))
 						parent->color = RB_BLACK;
 					else
@@ -357,6 +370,9 @@ static inline void rb_remove(struct rb_tree_t *tree, struct rb_node_t *rem)
 				cur = parent;
 			}
 		}
+
+		/* remove the leaf */
+		*link = NULL;
 	}
 
 	if (max_left != rem)
