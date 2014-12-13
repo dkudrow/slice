@@ -9,6 +9,9 @@ build/
 # vim bakcup files
 .*.swp
 
+# ctags
+tags
+
 # references
 refs/
 
