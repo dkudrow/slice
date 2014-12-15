@@ -20,6 +20,7 @@
 #include "led.h"
 #include "timer.h"
 #include "util.h"
+#include "filesystem.h"
 
 char sa[] = "Greetings from global sa[]\n";
 char *sp = "Greetings from global *sp\n";
@@ -43,10 +44,10 @@ slice_main()
 
 	emmc_init();
 
-	unsigned char buf[512];
-	emmc_read_block(0, buf);
+	printf("Done.\n");
 
-	printf("Done.");
+        fat32_init();
+        fat32_dump_part_table();
 
 	error_blink();
 }

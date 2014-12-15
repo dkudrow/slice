@@ -39,3 +39,14 @@ int strcmp(char *str1, char *str2)
 	}
 	return 0;
 }
+
+char *strncpy(char *dest, const char *src, unsigned size)
+{
+	unsigned i;
+	for (i=0; i<size && src[i] != '\0'; ++i)
+		dest[i] = src[i];
+	while (i < size)
+		dest[i++] = '\0';
+	return dest;
+}
+

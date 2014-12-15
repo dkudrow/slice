@@ -619,7 +619,7 @@ int emmc_init()
  */
 int emmc_read_block(unsigned block, unsigned *buf)
 {
-	unsigned cmd, resp, i;
+	unsigned cmd, resp, read_word, i;
 
 	debug_print(1, "Entering emmc_read_block().\n");
 
@@ -647,23 +647,11 @@ int emmc_read_block(unsigned block, unsigned *buf)
 	*(unsigned *)(EMMC_INTERRUPT) = INT_RD_READY;
 
 	/* get data from host */
-	for (i=0; i<BLOCK_SIZE; i+=4)
-		*buf++ = *(unsigned *)(EMMC_DATA);
-
-	/*
-	unsigned data_word;
-	printf("Reading Block %d...", block);
 	for (i=0; i<BLOCK_SIZE; i+=4) {
-		if (!(i % 32))
-			printf("\n");
-		data_word = *(unsigned *)(EMMC_DATA);
-		int j;
-		for (j=7; j>=0; j--) {
-			printf("%x", (data_word >> j*4) & 0xF);
-		}
-	}
-	printf("\n");
-	*/
+                read_word = *(unsigned *)(EMMC_DATA);
+		/**buf++ = SWAP_ORDER_4(read_word);*/
+		*buf++ = read_word;
+        }
 
 	/* wait for transfer complete interrupt */
 	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
@@ -724,6 +712,22 @@ int emmc_write_block(unsigned block, unsigned *buf)
 
 	return 0;
 }
+
+/*
+ * print a block
+ */
+void emmc_dump_block(unsigned char *block)
+{
+        int i;
+        for (i=0; i<BLOCK_SIZE; i++) {
+		if (!(i % 32))
+			printf("\n");
+                printf("%x", block[i]>>4);
+                printf("%x", (block[i]) & 0xF);
+        }
+	printf("\n");
+}
+
 
 /*
  * dump all EMMC registers
