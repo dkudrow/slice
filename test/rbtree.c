@@ -15,6 +15,8 @@
 
 #include <rbtree.h>
 
+const char *test_name = "RBTREE";
+
 #define TEST_SIZE 26
 
 #define rb_test_clear(tree) (tree)->root = NULL
@@ -91,7 +93,7 @@ static int rb_test_preorder(struct rb_tree_t *tree, char* expected, char *result
 /*
  * red-black tree tests
  */ 
-char *rbtree_test()
+char *run_test()
 {
 	struct rb_tree_t rbtree;
 	struct rb_test_t items[TEST_SIZE];
