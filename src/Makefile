@@ -12,13 +12,11 @@
 
 include ../Makefile.common
 
-#~==== define objects ===================================================~#
 ELF = $(BUILD)/$(KERNEL).elf
 MAP = $(ROOT)/$(KERNEL).map
 COBJ := $(patsubst %.c, $(BUILD)/%.o, $(wildcard *.c))
 ASMOBJ := $(patsubst %.S, $(BUILD)/%.o, $(wildcard *.S))
 OBJ := $(COBJ) $(ASMOBJ)
-#~=======================================================================~#
 
 all: $(ELF)
 
@@ -34,3 +32,6 @@ $(BUILD)/%.o: %.c $(BUILD)
 $(BUILD)/%.o: %.S $(BUILD)
 	$(ARMAS) $(ARMASFLAGS) -o $@ -c $<
 
+clean:
+	rm -f $(OBJ)
+	rm -f $(ELF) $(MAP)

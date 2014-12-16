@@ -12,12 +12,11 @@
 
 include Makefile.common
 
-#~==== define targets ===================================================~#
 IMAGE = $(ROOT)/$(KERNEL).img
 LIST = $(ROOT)/$(KERNEL).list
 ELF = $(BUILD)/$(KERNEL).elf
-#~=======================================================================~#
 
+#~==== targets ==========================================================~#
 .PHONY: test
 
 all: image list test
@@ -33,6 +32,7 @@ test-%:
 	$(MAKE) -C $(TEST) $@
 
 rebuild: all
+#~=======================================================================~#
 
 # build the kernel listing
 $(LIST): $(ELF)
@@ -51,7 +51,7 @@ $(BUILD):
 
 clean:
 	$(MAKE) -C $(TEST) clean
-	rm -rf $(BUILD)/*
+	$(MAKE) -C $(SRC) clean
 	rm -f $(IMAGE)
 	rm -f $(LIST)
 
