@@ -1,0 +1,50 @@
+#
+# Makefile.common
+#
+# Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
+# Date:		March 7, 2014
+#
+# Copyright (c) 2014, Daniel Kudrow
+# All rights reserved, see LICENSE.txt for details.
+#
+
+#~==== source tree layout ===============================================~#
+ROOT = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+SRC = $(ROOT)/src
+INC = $(ROOT)/include
+
+TEST = $(ROOT)/test
+TESTSRC = $(TEST)/src
+TESTINC = $(TEST)/include
+
+BUILD = $(ROOT)/build
+#~=======================================================================~#
+
+#~==== cross compilation tools for ARM ==================================~#
+ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi
+ARM = $(ARMDIR)/bin/arm-bcm2708-linux-gnueabi
+
+ARMCC = $(ARM)-gcc
+ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles \
+	    -DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
+
+ARMAS = $(ARM)-as
+ARMASFLAGS =
+
+ARMLD = $(ARM)-ld
+ARMLDFLAGS = --no-undefined --fatal-warnings
+
+OBJCOPY = $(ARM)-objcopy
+
+OBJDUMP = $(ARM)-objdump
+#~=======================================================================~#
+
+#~==== test compilation tools ===========================================~#
+CC = clang
+CFLAGS = -Wall -g -I$(TESTINC)
+#~=======================================================================~#
+
+#~==== define target ====================================================~#
+KERNEL = kernel
+#~=======================================================================~#

@@ -1,6 +1,6 @@
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
- * test/test.c
+ * test/main.c
  *
  * Test harness
  *
@@ -15,34 +15,19 @@
 
 #include <stdio.h>
 
-struct unit_test_t {
-	int no;
-	char *name;
-	char *(*func)(void);
-};
-
-extern char *malloc_test();
-extern char *rbtree_test();
-
-static struct unit_test_t unit_tests[] = {
-	{1, "malloc", malloc_test},
-	{2, "rbtree", rbtree_test},
-	{0, "", NULL}
-};
-
-static inline void test_run(char *name, char *(*func)(void))
-{
-	char *result = func();
-	printf("[%s]\t", name);
-	if (result == NULL)
-		printf("passed all tests\n");
-	else
-		printf("failed test '%s'\n", result);
-}
+extern const char *test_name;
+const char *run_test();
 
 int main() {
-	int i;
-	for (i=0; unit_tests[i].no != 0; i++) {
-		test_run(unit_tests[i].name, unit_tests[i].func);
+	const char *result = run_test();
+
+	printf("[%s]\t", test_name);
+
+	if (result != NULL) {
+		printf("failed test '%s'\n", result);
+		return 1;
 	}
+
+	printf("passed all tests\n");
+	return 0;
 }

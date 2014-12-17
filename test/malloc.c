@@ -18,6 +18,8 @@
 #define MSIZE (sizeof(struct malloc_t))
 #define HSIZE ((MSIZE+64) * 10)
 
+const char *test_name = "MALLOC";
+
 static char HEAP[HSIZE];
 
 struct malloc_info_t {
@@ -68,7 +70,7 @@ static struct malloc_info_t malloc_info()
 	return info;
 }
 
-char *malloc_test()
+const char *run_test()
 {
 	int i;
 	char *ptr[100];

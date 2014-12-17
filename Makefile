@@ -1,6 +1,8 @@
 #
 # Makefile
 #
+# Top level makefile
+#
 # Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
 # Date:		March 7, 2014
 #
@@ -8,52 +10,29 @@
 # All rights reserved, see LICENSE.txt for details.
 #
 
-#~==== source tree layout ===============================================~#
-SOURCE = src/
-INCLUDE = include/
-TEST = test/
-BUILD = build/
-#~=======================================================================~#
+include Makefile.common
 
-#~==== cross compilation tools for ARM ==================================~#
-ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi/
-ARMLIB = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/
-ARM = $(ARMDIR)bin/arm-bcm2708-linux-gnueabi
-ARMCC = $(ARM)-gcc
-ARMAS = $(ARM)-as
-ARMLD = $(ARM)-ld
-OBJCOPY = $(ARM)-objcopy
-OBJDUMP = $(ARM)-objdump
-ARMINCLUDE = $(ARMDIR)lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/include
-ARMCFLAGS = -I$(INCLUDE) -I$(ARMINCLUDE)\
-		   	-ffreestanding -nostartfiles\
-		   	-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
-ARMASFLAGS =
-ARMLDFLAGS = --no-undefined -T kernel.ld --fatal-warnings
-#~=======================================================================~#
+IMAGE = $(ROOT)/$(KERNEL).img
+LIST = $(ROOT)/$(KERNEL).list
+ELF = $(BUILD)/$(KERNEL).elf
 
-#~==== local compilation tools ==========================================~#
-CC = clang
-CFLAGS = -Wall -g -I$(INCLUDE)
-#~=======================================================================~#
+#~==== targets ==========================================================~#
+.PHONY: test
 
-#~==== define objects ===================================================~#
-COBJ := $(patsubst $(SOURCE)%.c,$(BUILD)%.o,$(wildcard $(SOURCE)*.c))
-ASMOBJ := $(patsubst $(SOURCE)%.S,$(BUILD)%.o,$(wildcard $(SOURCE)*.S))
-OBJECTS := $(COBJ) $(ASMOBJ)
-#~=======================================================================~#
+all: image list
 
-#~==== define targets ===================================================~#
-TARGET = kernel
-ELF = $(BUILD)$(TARGET).elf
-IMAGE = $(TARGET).img
-LIST = $(TARGET).list
-MAP = $(TARGET).map
-#~=======================================================================~#
+image: $(IMAGE)
 
-all: $(IMAGE) $(LIST)
+list: $(LIST)
+
+test:
+	$(MAKE) -C $(TEST) all
+
+test-%:
+	$(MAKE) -C $(TEST) $@
 
 rebuild: all
+#~=======================================================================~#
 
 # build the kernel listing
 $(LIST): $(ELF)
@@ -63,48 +42,16 @@ $(LIST): $(ELF)
 $(IMAGE): $(ELF)
 	$(OBJCOPY) $(ELF) -O binary $@
 
-# build the elf file
-$(ELF): $(OBJECTS) $(LINKER)
-	$(ARMLD) $(ARMLDFLAGS) $(OBJECTS) -Map $(MAP) -o $@
-
-# build all of the c source files
-$(BUILD)%.o: $(SOURCE)%.c $(BUILD)
-	$(ARMCC) $(ARMCFLAGS) -c $< -o $@
-
-# build all of the assembly source files
-$(BUILD)%.o: $(SOURCE)%.S $(BUILD)
-	$(ARMAS) $(ARMASFLAGS) -c $< -o $@
+$(ELF):
+	$(MAKE) -C $(SRC)
 
 # make the build directory if it doesn't exist
 $(BUILD):
 	mkdir -p $@
 
-#~==== define test objects ==============================================~#
-TESTOBJ := $(patsubst $(TEST)%,%,$(wildcard $(TEST)*.c))
-TESTOBJ := $(filter-out main.c, $(TESTOBJ))
-TESTOBJ := $(foreach NAME, $(TESTOBJ), $(wildcard $(SOURCE)$(NAME)))
-TESTOBJ := $(patsubst $(SOURCE)%.c,$(BUILD)local-%.o, $(TESTOBJ))
-TESTOBJ += $(patsubst $(TEST)%.c,$(BUILD)test-%.o,$(wildcard $(TEST)*.c))
-#~=======================================================================~#
-
-#~==== define test targets ==============================================~#
-TESTS = run_tests
-#~=======================================================================~#
-
-test: $(TESTS)
-
-$(TESTS): $(TESTOBJ)
-	$(CC) $(CFLAGS) $(TESTOBJ) -o run_tests
-
-$(BUILD)test-%.o: $(TEST)%.c $(BUILD)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD)local-%.o: $(SOURCE)%.c $(BUILD)
-	$(CC) $(CFLAGS) -c $< -o $@
-
 clean:
-	rm -rf $(BUILD)*
+	$(MAKE) -C $(TEST) clean
+	$(MAKE) -C $(SRC) clean
 	rm -f $(IMAGE)
 	rm -f $(LIST)
-	rm -f $(MAP)
-	rm -f $(TESTS)
+
