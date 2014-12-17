@@ -1,8 +1,8 @@
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
- * include/types.h
+ * test/include/types.h
  *
- * C types
+ * Local C types
  *
  * Author:  Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:  September 25 2014
@@ -16,12 +16,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-typedef unsigned size_t;
-
-#define NULL ((void *)0)
-
-#define offsetof(type, field) \
-  ((size_t) &((type *)0)->field)
+#include <stddef.h>
 
 #define container_of(ptr, type, field) \
   ((type *)((char *)(ptr)-offsetof(type, field)))

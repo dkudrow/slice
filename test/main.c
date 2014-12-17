@@ -19,7 +19,7 @@ extern const char *test_name;
 const char *run_test();
 
 int main() {
-	char *result = run_test();
+	const char *result = run_test();
 
 	printf("[%s]\t", test_name);
 

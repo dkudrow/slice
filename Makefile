@@ -19,7 +19,7 @@ ELF = $(BUILD)/$(KERNEL).elf
 #~==== targets ==========================================================~#
 .PHONY: test
 
-all: image list test
+all: image list
 
 image: $(IMAGE)
 

@@ -93,7 +93,7 @@ static int rb_test_preorder(struct rb_tree_t *tree, char* expected, char *result
 /*
  * red-black tree tests
  */ 
-char *run_test()
+const char *run_test()
 {
 	struct rb_tree_t rbtree;
 	struct rb_test_t items[TEST_SIZE];

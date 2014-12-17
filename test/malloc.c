@@ -70,7 +70,7 @@ static struct malloc_info_t malloc_info()
 	return info;
 }
 
-char *run_test()
+const char *run_test()
 {
 	int i;
 	char *ptr[100];

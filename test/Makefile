@@ -24,19 +24,22 @@ TARGETS = test-malloc test-rbtree
 all: $(TARGETS)
 
 test-%: $(ROOT)/test-%
+	
 
-$(ROOT)/test-malloc: $(BUILD)/test-malloc.o $(BUILD)/local-malloc.o main.o
-	$(CC) $(CFLAGS) -o $@ $(BUILD)/test-malloc.o $(BUILD)/local-malloc.o main.o
+MALLOC_OBJ = test-malloc.o local-malloc.o test-main.o
+$(ROOT)/test-malloc: $(addprefix $(BUILD)/, $(MALLOC_OBJ))
+	$(CC) $(CFLAGS) -o $@ $^
 
-$(ROOT)/test-rbtree: $(BUILD)/test-rbtree.o $(BUILD)/local-rbtree.o main.o
-	$(CC) $(CFLAGS) -o $@ $(BUILD)/test-rbtree.o $(BUILD)/local-rbtree.o main.o
+RBTREE_OBJ = test-rbtree.o local-rbtree.o test-main.o
+$(ROOT)/test-rbtree: $(addprefix $(BUILD)/, $(RBTREE_OBJ))
+	$(CC) $(CFLAGS) -o $@ $^
 
 # build all of the source files
-$(BUILD)/local-%.o: $(SRC)/%.c $(BUILD)
+$(BUILD)/local-%.o: $(TESTSRC)/%.c $(BUILD)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 # build all of the tests
-$(BUILD)/test-%.o: $(TEST)/%.c $(BUILD)
+$(BUILD)/test-%.o: %.c $(BUILD)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BUILD):
