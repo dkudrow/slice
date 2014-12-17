@@ -25,13 +25,16 @@ all: $(TARGETS)
 
 test-%: $(ROOT)/test-%
 	
-
-MALLOC_OBJ = test-malloc.o local-malloc.o test-main.o
-$(ROOT)/test-malloc: $(addprefix $(BUILD)/, $(MALLOC_OBJ))
+FS_OBJ = test-filesystem.o local-filesystem.o local-emmc.o local-string.o
+$(ROOT)/test-fs: $(addprefix $(BUILD)/, $(FS_OBJ))
 	$(CC) $(CFLAGS) -o $@ $^
 
 RBTREE_OBJ = test-rbtree.o local-rbtree.o test-main.o
 $(ROOT)/test-rbtree: $(addprefix $(BUILD)/, $(RBTREE_OBJ))
+	$(CC) $(CFLAGS) -o $@ $^
+
+MALLOC_OBJ = test-malloc.o local-malloc.o test-main.o
+$(ROOT)/test-malloc: $(addprefix $(BUILD)/, $(MALLOC_OBJ))
 	$(CC) $(CFLAGS) -o $@ $^
 
 # build all of the source files
