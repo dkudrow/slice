@@ -13,37 +13,41 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-void memcpy(void *dst, void *src, unsigned size)
+#include <types.h>
+
+void memcpy(void *dst, void *src, size_t size)
 {
-	unsigned i;
+	size_t i;
 
 	for (i=0; i<size; i++)
 		((unsigned char *)dst)[i] = ((unsigned char *)src)[i];
 }
 
-void memset(void *dst, unsigned char c, unsigned size)
+void memset(void *dst, unsigned char c, size_t size)
 {
-	unsigned i;
+	size_t i;
 
 	for (i=0; i<size; i++)
 		((unsigned char *)dst)[i] = c;
 }
 
-int strcmp(char *str1, char *str2)
+int strcmp(const char *str1, const char *str2)
 {
-	while (*str1 == *str2) {
-		if (*str1 == '\0')
-			return 1;
-		str1++;
-		str2++;
+	const char *p1 = str1;
+	const char *p2 = str2;
+	while (*p1 == *p2) {
+		if (*p1 == '\0')
+			return 0;
+		p1++;
+		p2++;
 	}
-	return 0;
+	return *p1 > *p2 ? 1 : -1;
 }
 
-char *strncpy(char *dest, const char *src, unsigned size)
+char *strncpy(char *dest, const char *src, size_t size)
 {
-	unsigned i;
-	for (i=0; i<size && src[i] != '\0'; ++i)
+	size_t i;
+	for (i=0; i<size && src[i] != '\0'; i++)
 		dest[i] = src[i];
 	while (i < size)
 		dest[i++] = '\0';

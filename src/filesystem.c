@@ -30,7 +30,7 @@
 struct fat32_vol_t {
 	unsigned vol_lba;	/* LBA of volume */
 	unsigned size;		/* size of volume in sectors */
-	unsigned sector_size;	/* size of sector in bytes */
+	size_t sector_size;	/* size of sector in bytes */
 	unsigned cluster_size;	/* size of cluster in sectors */
 	unsigned fat_size;	/* size of FAT in sectors */
 	unsigned num_fats;	/* number of FATs */
@@ -52,71 +52,71 @@ struct fat32_dirent_t {
  * On disk layout of MS DOS partition table entry
  */
 struct msdos_part_t {
-	unsigned char boot;
-	unsigned char _PAD1[7];
-	unsigned start_lba;
-	unsigned size;
+	uint8_t boot;
+	uint8_t _PAD1[7];
+	uint32_t start_lba;
+	uint32_t size;
 } __attribute__((packed));
 
 /*
  * On disk layout of MBR
  */
 struct mbr_t {
-	unsigned char _PAD1[446];
+	uint8_t _PAD1[446];
 	struct msdos_part_t part_1;
 	struct msdos_part_t part_2;
 	struct msdos_part_t part_3;
 	struct msdos_part_t part_4;
-	unsigned short magic;
+	uint16_t magic;
 } __attribute__((packed));
 
 /*
  * On disk layout of Volume ID/Boot Parameter Block sector
  */
 struct fat32_bpb_t {
-	unsigned char _PAD1[11];
-	unsigned short sector_size;	/* size of sector in bytes */
-	unsigned char cluster_size;	/* size of cluster in sectors */
-	unsigned short reserved_sectors;/* resrved sectors before FAT */
-	unsigned char num_fats;		/* replication of FAT */
-	unsigned char _PAD2[19];
-	unsigned fat_size;		/* size of FAT in sectors */
-	unsigned char _PAD3[4];
-	unsigned root;			/* cluster containing root directory */
+	uint8_t _PAD1[11];
+	uint16_t sector_size;	/* size of sector in bytes */
+	uint8_t cluster_size;	/* size of cluster in sectors */
+	uint16_t reserved_sectors;/* resrved sectors before FAT */
+	uint8_t num_fats;		/* replication of FAT */
+	uint8_t _PAD2[19];
+	uint32_t fat_size;		/* size of FAT in sectors */
+	uint8_t _PAD3[4];
+	uint32_t root;			/* cluster containing root directory */
 } __attribute__((packed));
 
 /*
  * On disk layout of long directory entry
  */
 struct fat32_long_dirent_t {
-	unsigned char sequence;		/* sequence of entry in long name */
-	unsigned short name_1[5];	/* characters 1-5 in entry */
-	unsigned char attributes;	/* should always be 0x0F */
-	unsigned char type;		/* should always be 0x00 */
-	unsigned char checksum;		/* checksum of short name -- ignore */
-	unsigned short name_2[6];	/* characters 6-11 in entry */
-	unsigned char _PAD[2];		/* should always be 0x0000 */
-	unsigned short name_3[2];	/* characters 12-13 in entry */
+	uint8_t sequence;		/* sequence of entry in long name */
+	uint16_t name_1[5];	/* characters 1-5 in entry */
+	uint8_t attributes;	/* should always be 0x0F */
+	uint8_t type;		/* should always be 0x00 */
+	uint8_t checksum;		/* checksum of short name -- ignore */
+	uint16_t name_2[6];	/* characters 6-11 in entry */
+	uint8_t _PAD[2];		/* should always be 0x0000 */
+	uint16_t name_3[2];	/* characters 12-13 in entry */
 } __attribute__((packed));
 
-#define FAT32_IS_LONG(dirent) (READ_1(((unsigned char *)dirent)+11) == 0x0F)
+#define FAT32_IS_LONG(dirent) (READ_1(((uint8_t *)dirent)+11) == 0x0F)
 
 /*
  * On disk layout of short directory entry
  */
 struct fat32_short_dirent_t {
 	char name[11];			/* short name in ABCDEFGH.EXT format */
-	unsigned char attributes;	/* file attributes */
-	unsigned char _PAD;		/* should always be 0x00 */
-	unsigned char time_tenths;	/* 0.1s creation time */
-	unsigned short creation_time;	/* creation time */
-	unsigned short creation_date;	/* creation date */
-	unsigned short access_date;	/* last access date */
-	unsigned short cluster_hi;	/* hi bytes of first cluster number */
-	unsigned short write_time;	/* last write time */
-	unsigned short write_date;	/* last write date */
-	unsigned short cluster_lo;	/* lo bytes of first cluster number */
-	unsigned size;			/* size of file in bytes */
+	uint8_t attributes;	/* file attributes */
+	uint8_t _PAD;		/* should always be 0x00 */
+	uint8_t time_tenths;	/* 0.1s creation time */
+	uint16_t creation_time;	/* creation time */
+	uint16_t creation_date;	/* creation date */
+	uint16_t access_date;	/* last access date */
+	uint16_t cluster_hi;	/* hi bytes of first cluster number */
+	uint16_t write_time;	/* last write time */
+	uint16_t write_date;	/* last write date */
+	uint16_t cluster_lo;	/* lo bytes of first cluster number */
+	uint32_t size;			/* size of file in bytes */
 } __attribute__((packed));
 
 struct fat32_vol_t volume;

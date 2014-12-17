@@ -18,7 +18,7 @@ TESTOBJ := $(patsubst $(TEST)/%.c,$(BUILD)/test-%.o,$(wildcard $(TEST)/*.c))
 #~=======================================================================~#
 
 #~==== define targets ===================================================~#
-TARGETS = test-malloc test-rbtree
+TARGETS = test-fs test-rbtre etest-malloc
 #~=======================================================================~#
 
 all: $(TARGETS)
