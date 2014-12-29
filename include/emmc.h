@@ -17,7 +17,7 @@
 #define EMMC_H
 
 void emmc_init();
-void emmc_read_block();
+int emmc_read_block(unsigned block, void *void_buf);
 void emmc_write_block();
 void emmc_dump_block(unsigned char *block);
 

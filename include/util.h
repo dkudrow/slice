@@ -29,9 +29,12 @@
 void printf(char *format_str, ...);
 
 /* string.h */
-void memcpy(void *dst, void *src, unsigned size);
-void memset(void *dst, char c, unsigned size);
-int strcmp(char *str1, char *str2);
-char *strncpy(char *dest, const char *src, unsigned n);
+void *memcpy(void *dst, const void *src, unsigned long size);
+void *memset(void *dst, int c, unsigned long size);
+int strcmp(const char *str1, const char *str2);
+int strncmp(const char *str1, const char *str2, size_t n);
+char *strncpy(char *dst, const char *src, unsigned long n);
+size_t strlen(const char *str);
+int toupper(int c) /* FIXME: should live in ctype.h */
 
 #endif /* UTIL_H */

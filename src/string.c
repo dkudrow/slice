@@ -15,20 +15,24 @@
 
 #include <types.h>
 
-void memcpy(void *dst, void *src, size_t size)
+void *memcpy(void *dst, const void *src, unsigned long size)
 {
 	size_t i;
 
 	for (i=0; i<size; i++)
 		((unsigned char *)dst)[i] = ((unsigned char *)src)[i];
+
+	return dst;
 }
 
-void memset(void *dst, unsigned char c, size_t size)
+void *memset(void *dst, int c, unsigned long size)
 {
 	size_t i;
 
 	for (i=0; i<size; i++)
 		((unsigned char *)dst)[i] = c;
+
+	return dst;
 }
 
 int strcmp(const char *str1, const char *str2)
@@ -44,13 +48,36 @@ int strcmp(const char *str1, const char *str2)
 	return *p1 > *p2 ? 1 : -1;
 }
 
-char *strncpy(char *dest, const char *src, size_t size)
+int strncmp(const char *str1, const char *str2, size_t n)
 {
-	size_t i;
-	for (i=0; i<size && src[i] != '\0'; i++)
-		dest[i] = src[i];
-	while (i < size)
-		dest[i++] = '\0';
-	return dest;
+	int i = 0;
+	while (str1[i] == str2[i]) {
+		if (str1[i] == '\0' || i == n)
+			return 0;
+		++i;
+	}
+	return str1[i] > str2[i] ? 1 : -1;
 }
 
+char *strncpy(char *dst, const char *src, unsigned long n)
+{
+	size_t i;
+	for (i=0; i<n && src[i] != '\0'; i++)
+		dst[i] = src[i];
+	while (i < n)
+		dst[i++] = '\0';
+	return dst;
+}
+
+size_t strlen(const char *str)
+{
+	int len;
+	for (len=0; str[len] != '\0'; len++)
+		;
+	return len;
+}
+
+int toupper(int c)
+{
+	return (c > 96 && c < 123) ? c - ('a' - 'A') : c;
+}

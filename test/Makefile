@@ -25,7 +25,7 @@ all: $(TARGETS)
 
 test-%: $(ROOT)/test-%
 	
-FS_OBJ = test-filesystem.o local-filesystem.o local-emmc.o local-string.o
+FS_OBJ = test-filesystem.o local-filesystem.o local-emmc.o local-string.o test-main.o
 $(ROOT)/test-fs: $(addprefix $(BUILD)/, $(FS_OBJ))
 	$(CC) $(CFLAGS) -o $@ $^
 

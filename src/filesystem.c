@@ -25,12 +25,38 @@
 #include "debug.h"
 
 /*
+ * LBA of FAT sector containing cluster
+ */
+#define FAT_LBA(cluster) (volume.fat_lba + ((cluster) * 4 / 512))
+
+/*
+ * LBA of first sector of cluster
+ */
+#define CLUSTER_LBA(cluster) ((((cluster) - 2) * volume.cluster_size) + volume.cluster_lba)
+
+/*
+ * Return true if dirent is a long name directory entry
+ */
+#define FAT32_IS_LONG(dirent) (READ_1(((uint8_t *)dirent)+11) == 0x0F)
+
+#define VALID_CHAR(c) ( ((c) >= '^' && (c) <= 'z') ||				\
+		((c) >= '@' && (c) <= 'Z') || ((c) >= '0' && (c) <= '9') ||	\
+		((c) >= '\'' && (c) <= ')') || ((c) >= '#' && (c) <= '&') ||	\
+		((c) == '!' ) || ((c) == '-' ) || ((c) == '{' ) ||		\
+		((c) == '}' ) || ((c) == '~' ))
+
+#define FAT_MASK 0x0FFFFFFF
+#define FAT_TAIL 0x0FFFFFFF
+#define FAT_FREE 0x00000000
+#define CLUSTER_SIZE (volume.cluster_size * volume.sector_size)
+
+/*
  * FAT32 volume
  */
-struct fat32_vol_t {
+struct vol_t {
 	unsigned vol_lba;	/* LBA of volume */
 	unsigned size;		/* size of volume in sectors */
-	size_t sector_size;	/* size of sector in bytes */
+	unsigned sector_size;	/* size of sector in bytes */
 	unsigned cluster_size;	/* size of cluster in sectors */
 	unsigned fat_size;	/* size of FAT in sectors */
 	unsigned num_fats;	/* number of FATs */
@@ -40,10 +66,10 @@ struct fat32_vol_t {
 };
 
 /*
- * FAT32 long and short names
+ * FAT32 directory entry
  */
-struct fat32_dirent_t {
-	char short_name[13];		/* FAT32 short name */
+struct dirent_t {
+	char short_name[12];		/* FAT32 short name */
 	char long_name[FS_MAX_NAME+1];	/* FAT32 long name */
 	unsigned cluster;		/* first cluster */
 };
@@ -51,7 +77,7 @@ struct fat32_dirent_t {
 /*
  * On disk layout of MS DOS partition table entry
  */
-struct msdos_part_t {
+struct disk_part_t {
 	uint8_t boot;
 	uint8_t _PAD1[7];
 	uint32_t start_lba;
@@ -61,23 +87,23 @@ struct msdos_part_t {
 /*
  * On disk layout of MBR
  */
-struct mbr_t {
+struct disk_mbr_t {
 	uint8_t _PAD1[446];
-	struct msdos_part_t part_1;
-	struct msdos_part_t part_2;
-	struct msdos_part_t part_3;
-	struct msdos_part_t part_4;
+	struct disk_part_t part_1;
+	struct disk_part_t part_2;
+	struct disk_part_t part_3;
+	struct disk_part_t part_4;
 	uint16_t magic;
 } __attribute__((packed));
 
 /*
  * On disk layout of Volume ID/Boot Parameter Block sector
  */
-struct fat32_bpb_t {
+struct disk_bpb_t {
 	uint8_t _PAD1[11];
-	uint16_t sector_size;	/* size of sector in bytes */
-	uint8_t cluster_size;	/* size of cluster in sectors */
-	uint16_t reserved_sectors;/* resrved sectors before FAT */
+	uint16_t sector_size;		/* size of sector in bytes */
+	uint8_t cluster_size;		/* size of cluster in sectors */
+	uint16_t reserved_sectors;	/* resrved sectors before FAT */
 	uint8_t num_fats;		/* replication of FAT */
 	uint8_t _PAD2[19];
 	uint32_t fat_size;		/* size of FAT in sectors */
@@ -88,26 +114,24 @@ struct fat32_bpb_t {
 /*
  * On disk layout of long directory entry
  */
-struct fat32_long_dirent_t {
+struct disk_long_dirent_t {
 	uint8_t sequence;		/* sequence of entry in long name */
-	uint16_t name_1[5];	/* characters 1-5 in entry */
-	uint8_t attributes;	/* should always be 0x0F */
-	uint8_t type;		/* should always be 0x00 */
+	uint16_t name_1[5];		/* characters 1-5 in entry */
+	uint8_t attributes;		/* should always be 0x0F */
+	uint8_t type;			/* should always be 0x00 */
 	uint8_t checksum;		/* checksum of short name -- ignore */
-	uint16_t name_2[6];	/* characters 6-11 in entry */
-	uint8_t _PAD[2];		/* should always be 0x0000 */
-	uint16_t name_3[2];	/* characters 12-13 in entry */
+	uint16_t name_2[6];		/* characters 6-11 in entry */
+	uint8_t _PAD[2];
+	uint16_t name_3[2];		/* characters 12-13 in entry */
 } __attribute__((packed));
-
-#define FAT32_IS_LONG(dirent) (READ_1(((uint8_t *)dirent)+11) == 0x0F)
 
 /*
  * On disk layout of short directory entry
  */
-struct fat32_short_dirent_t {
-	char name[11];			/* short name in ABCDEFGH.EXT format */
+struct disk_short_dirent_t {
+	char name[11];		/* short name in ABCDEFGH.EXT format */
 	uint8_t attributes;	/* file attributes */
-	uint8_t _PAD;		/* should always be 0x00 */
+	uint8_t _PAD;
 	uint8_t time_tenths;	/* 0.1s creation time */
 	uint16_t creation_time;	/* creation time */
 	uint16_t creation_date;	/* creation date */
@@ -116,32 +140,55 @@ struct fat32_short_dirent_t {
 	uint16_t write_time;	/* last write time */
 	uint16_t write_date;	/* last write date */
 	uint16_t cluster_lo;	/* lo bytes of first cluster number */
-	uint32_t size;			/* size of file in bytes */
+	uint32_t size;		/* size of file in bytes */
 } __attribute__((packed));
 
-struct fat32_vol_t volume;
+struct vol_t volume;
 
 /*
  * Load a cluster into a buffer
  */
-void fat32_get_cluster(unsigned logical_cluster, unsigned char *buf)
+static void fs_get_cluster(unsigned cluster, unsigned char *buf)
 {
 	int i;
-	unsigned absolute_cluster = logical_cluster - volume.root;
-	unsigned lba = volume.cluster_lba + absolute_cluster * volume.cluster_size;
+	unsigned lba = CLUSTER_LBA(cluster);
 	for (i=0; i<volume.cluster_size; i++)
 		emmc_read_block(lba+i, buf+i*volume.sector_size);
 }
 
 /*
+ * Find the cluster corresponding to an offset
+ */
+static int fs_find_offset(unsigned offset, unsigned head, unsigned *ret)
+{
+	unsigned sector[512];
+	unsigned cluster_cnt = offset / (volume.cluster_size * 512);
+	unsigned cluster_no = head;
+	unsigned lba, last_lba = 0;
+
+	/* walk FAT cluster chain */
+	for (int i=0; i<cluster_cnt; i++) {
+		lba = FAT_LBA(cluster_no);
+		if (lba != last_lba)
+			emmc_read_block(lba, sector);
+		cluster_no = sector[cluster_no] & FAT_MASK;
+		if (cluster_no == FAT_TAIL)
+			return -1; /* reached EOC prematurely */
+	}
+
+	*ret = cluster_no;
+	return 0;
+}
+
+/*
  * Read an MS DOS format partition table
  */
-void fat32_init()
+void fs_init()
 {
 	unsigned char sector[512];
-	struct mbr_t *mbr = (struct mbr_t *)sector;
-	struct msdos_part_t *part = &mbr->part_1;
-	struct fat32_bpb_t *bpb = (struct fat32_bpb_t *)sector;
+	struct disk_mbr_t *mbr = (struct disk_mbr_t *)sector;
+	struct disk_part_t *part = &mbr->part_1;
+	struct disk_bpb_t *bpb = (struct disk_bpb_t *)sector;
 
 	/* find volume in partition table */
 	emmc_read_block(0, sector);
@@ -162,20 +209,20 @@ void fat32_init()
 /*
  * Read the directory entry in cluster at offset
  */
-unsigned fat32_readdir(unsigned char *cluster, unsigned offset,
-		struct fat32_dirent_t *dirent)
+unsigned fs_readdir(unsigned char *cluster, unsigned offset,
+		struct dirent_t *dirent)
 {
 	int i, pos, seq;
-	struct fat32_short_dirent_t *short_dirent;
-	struct fat32_long_dirent_t *long_dirent =
-		(struct fat32_long_dirent_t *)(cluster + offset);
+	struct disk_short_dirent_t *short_dirent;
+	struct disk_long_dirent_t *long_dirent =
+		(struct disk_long_dirent_t *)(cluster + offset);
 
 	dirent->long_name[0] = '\0';
 	dirent->short_name[0] = '\0';
 
 	/* check for empty directory entry */
 	if ((cluster + offset)[0] == 0xE5)
-		return offset + sizeof(struct fat32_short_dirent_t);
+		return offset + sizeof(struct disk_short_dirent_t);
 
 	/* check for last directory entry */
 	if ((cluster + offset)[0] == 0x00)
@@ -197,11 +244,13 @@ unsigned fat32_readdir(unsigned char *cluster, unsigned offset,
 	}
 
 	/* build the short name */
-	short_dirent = (struct fat32_short_dirent_t *)long_dirent;
-	strncpy(&dirent->short_name[0], short_dirent->name, 8);
-	dirent->short_name[8] = '.';
-	strncpy(&dirent->short_name[9], &short_dirent->name[8], 3);
-	dirent->short_name[12] = '\0';
+	short_dirent = (struct disk_short_dirent_t *)long_dirent;
+	/*strncpy(&dirent->short_name[0], short_dirent->name, 8);*/
+	/*dirent->short_name[8] = '.';*/
+	/*strncpy(&dirent->short_name[9], &short_dirent->name[8], 3);*/
+	/*dirent->short_name[12] = '\0';*/
+	strncpy(&dirent->short_name[0], short_dirent->name, 11);
+	dirent->short_name[11] = '\0';
 
 	dirent->cluster = (short_dirent->cluster_hi) | (short_dirent->cluster_hi << 16);
 
@@ -209,9 +258,94 @@ unsigned fat32_readdir(unsigned char *cluster, unsigned offset,
 }
 
 /*
+ * Convert a FAT32 short name into a string
+ */
+void fs_name_to_str(char *filename, const char *short_name)
+{
+	int i=0, j=8;
+
+	/* copy base name */
+	while (i<8 && short_name[i] > ' ') {
+		filename[i] = short_name[i];
+		++i;
+	}
+
+	/* check for extension */
+	if (short_name[8] > ' ')
+		filename[i++] = '.';
+
+	/* copy extension */
+	while (j<11 && short_name[j] > ' ')
+		filename[i++] = short_name[j++];
+
+	filename[i] = '\0';
+}
+
+/*
+ * Convert a string into a FAT32 short name
+ */
+int fs_str_to_name(char *short_name, const char *filename)
+{
+	int i, j;
+
+	memset(short_name, ' ', 11);
+
+	/* copy basename */
+	for (i=0; i<8; i++) {
+		if (filename[i] == '\0')
+			return i == 0 ? -1 : 0;
+		if (filename[i] == '.')
+			break;
+		if (!VALID_CHAR(filename[i]))
+			return -1;
+		short_name[i] = toupper(filename[i]);
+	}
+
+	if (i == 0)
+		return -1;
+
+	/* find extension */
+	while (filename[i] != '.' && filename[i] != '\0')
+		++i;
+	while (filename[i] == '.')
+		++i;
+
+	/* copy extension */
+	for (j=8; j<11; j++) {
+		if (filename[i] == '\0')
+			return 0;
+		if (!VALID_CHAR(filename[i]))
+			return -1;
+		short_name[j] = toupper(filename[i++]);
+	}
+
+	return 0;
+}
+
+/*
+ *
+ */
+int fs_lookup(const char *name, struct dirent_t *ret)
+{
+	unsigned char cluster[CLUSTER_SIZE];
+	unsigned offset = 0;
+	char short_name[12];
+
+	fs_get_cluster(volume.root, cluster);
+	fs_str_to_name(short_name, name);
+
+	while ((offset = fs_readdir(cluster, offset, ret))) {
+		if (!strncmp(short_name, ret->short_name, 11))
+			return 0;
+	}
+
+	return -1;
+}
+
+/*
  * Dump volume info about each partition
  */
-void fat32_dump_part_table()
+void fs_dump_part_table()
 {
 	printf("~~~ Volume ~~~\n");
 	printf("vol_lba: 0x%x\t", volume.vol_lba);
@@ -224,12 +358,13 @@ void fat32_dump_part_table()
 	printf("fat_lba 0x%x\t", volume.fat_lba);
 	printf("root: 0x%x\n\n", volume.root);
 
+	/* read root dir */
 	unsigned char cluster[volume.sector_size * volume.cluster_size];
 	unsigned next_dirent = 0;
-	struct fat32_dirent_t dirent;
-	fat32_get_cluster(volume.root, cluster);
+	struct dirent_t dirent;
+	fs_get_cluster(volume.root, cluster);
 	emmc_dump_block(cluster);
-	while ((next_dirent = fat32_readdir(cluster, next_dirent, &dirent))) {
+	while ((next_dirent = fs_readdir(cluster, next_dirent, &dirent))) {
 		if (strcmp(dirent.short_name, "")) {
 			printf("Long name:  '%s'\n", dirent.long_name);
 			printf("Short name: '%s'\n", dirent.short_name);

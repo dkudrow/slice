@@ -617,9 +617,10 @@ int emmc_init()
 /*
  * read single block from card
  */
-int emmc_read_block(unsigned block, unsigned *buf)
+int emmc_read_block(unsigned block, void *void_buf)
 {
 	unsigned cmd, resp, read_word, i;
+        unsigned *buf = (unsigned *)void_buf;
 
 	debug_print(1, "Entering emmc_read_block().\n");
 
