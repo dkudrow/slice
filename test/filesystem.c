@@ -3,15 +3,20 @@
 #include <stdio.h>
 #include <string.h>
 
-struct dirent_t {
-	char short_name[12];		/* FAT32 short name */
-	char long_name[FS_MAX_NAME+1];	/* FAT32 long name */
-	unsigned cluster;		/* first cluster */
-};
-
+/*
+ * Private function prototypes to include in tests
+ */
 int fs_lookup(const char *name, struct dirent_t *ret);
+int fs_str_to_name(char *short_name, const char *filename);
+void fs_name_to_str(char *filename, const char *short_name);
 
 const char *test_name = "FS";
+
+const char *test_file = "FS_TEST.TXT";
+const char *test_str = "'Twas brillig, and the slithy toves\n"
+	"Did gyre and gimble in the wabe;\n"
+	"All mimsy were the borogoves,\n"
+	"And the mome raths outgrabe.\n";
 
 const char *run_test()
 {
@@ -21,7 +26,7 @@ const char *run_test()
         struct dirent_t dirent;
 
         fs_init();
-        fs_dump_part_table();
+        /*fs_dump_part_table();*/
 
         /* fs_str_to_name */
         memset(short_name, '\0', 12);
@@ -121,6 +126,17 @@ const char *run_test()
         ret = fs_lookup("bootcode.bi", &dirent);
         if (!ret)
                 return "found non-existant file";
+
+        /* fs_read */
+        unsigned char read_buf[1024];
+        int bytes_read, pos = 0;
+        do {
+                bytes_read = fs_read(test_file, &read_buf[pos], pos, 64);
+                pos += bytes_read;
+                read_buf[pos] = '\0';
+        } while (bytes_read);
+	if (strcmp((char *)read_buf, test_str))
+		return "failed reading from short file";
 
         return NULL;
 }

@@ -24,6 +24,10 @@
 #define READ_SWAP_2(addr) SWAP_ORDER_2(READ_2(addr))
 #define READ_SWAP_4(addr) SWAP_ORDER_4(READ_4(addr))
 
+/* misc */
+#define MIN(a, b) ((a) > (b) ? (b) : (a))
+#define MAX(a, b) ((a) < (b) ? (b) : (a))
+
 /* stdio.h */
 #include <stdio.h>
 

@@ -51,30 +51,6 @@
 #define CLUSTER_SIZE (volume.cluster_size * volume.sector_size)
 
 /*
- * FAT32 volume
- */
-struct vol_t {
-	unsigned vol_lba;	/* LBA of volume */
-	unsigned size;		/* size of volume in sectors */
-	unsigned sector_size;	/* size of sector in bytes */
-	unsigned cluster_size;	/* size of cluster in sectors */
-	unsigned fat_size;	/* size of FAT in sectors */
-	unsigned num_fats;	/* number of FATs */
-	unsigned cluster_lba;	/* LBA of first cluster */
-	unsigned fat_lba;	/* LBA of first FAT */
-	unsigned root;		/* first cluster of root directory */
-};
-
-/*
- * FAT32 directory entry
- */
-struct dirent_t {
-	char short_name[12];		/* FAT32 short name */
-	char long_name[FS_MAX_NAME+1];	/* FAT32 long name */
-	unsigned cluster;		/* first cluster */
-};
-
-/*
  * On disk layout of MS DOS partition table entry
  */
 struct disk_part_t {
@@ -158,13 +134,18 @@ static void fs_get_cluster(unsigned cluster, unsigned char *buf)
 
 /*
  * Find the cluster corresponding to an offset
+ * Note: returning 0 in case of failure is safe because there is no
+ * dirent to pass in for the root directory (which occupies cluster 0)
  */
-static int fs_find_offset(unsigned offset, unsigned head, unsigned *ret)
+static unsigned fs_cluster_map(unsigned offset, struct dirent_t *dirent)
 {
 	unsigned sector[512];
 	unsigned cluster_cnt = offset / (volume.cluster_size * 512);
-	unsigned cluster_no = head;
+	unsigned cluster_no = dirent->cluster;
 	unsigned lba, last_lba = 0;
+
+	if (offset >= dirent->size)
+		return 0;
 
 	/* walk FAT cluster chain */
 	for (int i=0; i<cluster_cnt; i++) {
@@ -172,12 +153,9 @@ static int fs_find_offset(unsigned offset, unsigned head, unsigned *ret)
 		if (lba != last_lba)
 			emmc_read_block(lba, sector);
 		cluster_no = sector[cluster_no] & FAT_MASK;
-		if (cluster_no == FAT_TAIL)
-			return -1; /* reached EOC prematurely */
 	}
 
-	*ret = cluster_no;
-	return 0;
+	return cluster_no;
 }
 
 /*
@@ -252,7 +230,8 @@ unsigned fs_readdir(unsigned char *cluster, unsigned offset,
 	strncpy(&dirent->short_name[0], short_dirent->name, 11);
 	dirent->short_name[11] = '\0';
 
-	dirent->cluster = (short_dirent->cluster_hi) | (short_dirent->cluster_hi << 16);
+	dirent->cluster = (short_dirent->cluster_lo) | (short_dirent->cluster_hi << 16);
+	dirent->size = (unsigned)(short_dirent->size);
 
 	return (unsigned)(short_dirent + 1) - (unsigned)cluster;
 }
@@ -323,13 +302,13 @@ int fs_str_to_name(char *short_name, const char *filename)
 }
 
 /*
- *
+ * Find directory entry correspending to filename
  */
 int fs_lookup(const char *name, struct dirent_t *ret)
 {
 	unsigned char cluster[CLUSTER_SIZE];
 	unsigned offset = 0;
-	char short_name[12];
+	char short_name[11];
 
 	fs_get_cluster(volume.root, cluster);
 	fs_str_to_name(short_name, name);
@@ -340,6 +319,36 @@ int fs_lookup(const char *name, struct dirent_t *ret)
 	}
 
 	return -1;
+}
+
+/*
+ * Read bytes from file into buffer
+ * TODO: set errno
+ */
+int fs_read(const char *filename, unsigned char* buf, size_t off, size_t count)
+{
+	struct dirent_t dirent;
+	unsigned cluster_no;
+	unsigned char cluster[CLUSTER_SIZE]; 
+	int start_read, bytes_to_read, last_byte, pos = off;
+
+	if (fs_lookup(filename, &dirent) != 0)
+		return -1; /* FIXME -- no such file */
+
+	/* perform read for each cluster */
+	last_byte = MIN(off+count, dirent.size);
+	while (pos < last_byte) {
+		cluster_no = fs_cluster_map(pos, &dirent);
+		if (cluster_no == 0)
+			return pos - off;
+		fs_get_cluster(cluster_no, cluster);
+		start_read = pos % CLUSTER_SIZE;
+		bytes_to_read = MIN(CLUSTER_SIZE, last_byte - pos);
+		memcpy(&buf[pos-off], &cluster[start_read], bytes_to_read);
+		pos += bytes_to_read;
+	}
+
+	return pos - off;
 }
 
 /*
