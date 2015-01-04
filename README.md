@@ -20,6 +20,9 @@ The console doesn't do a whole lot. This code will act as a thin layer around th
 #### SD Card Controller
 Although the EMMC supports MMC as well, I am only implementing SD to keep things simple. This driver detects and initializes the SD card and provides a simple interface for reading and writing.
 
+#### File System
+Slice uses the 32 bit version of Microsoft's FAT file system (FAT32). While FAT is not the most intuitive design for a filesystem, it is (arguably) the simplest that is widely supported by other systems. This will allow the user to access the filesystem from a machine running a production OS.
+
 ## References
 This undertaking would not be possible without the vast corpus of freely available tutorials, literature, and forums online. Here is a
 comprehensive list of sources that I consulted in writing Slice. All of these documents are (as far as I'm aware) completely free although
@@ -31,6 +34,7 @@ some of the hardware manuals require you to _register_ with the vendor - usually
 * [Arm System Developers Guide](http://www.amazon.com/ARM-System-Developers-Guide-Architecture/dp/1558608745)
 * [MMC 4.4 Specification](http://www.jedec.org/standards-documents/docs/jesd-84-a44)
 * [SDHCI 3.0 Specification (simplified)]()
+* [FAT File System Specification](https://staff.washington.edu/dittrich/misc/fatgen103.pdf)
 
 #### Tutorials
 * [Baking Pi Tutorial](https://www.cl.cam.ac.uk/projects/raspberrypi/tutorials/os/)
