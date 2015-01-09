@@ -16,9 +16,9 @@
 #ifndef MAILBOX_H
 #define MAILBOX_H
 
-/*
- * mailbox channels
- */
+#include <types.h>
+
+/* Mailbox channels */
 #define MBOX_CHAN_PWR	0x0
 #define MBOX_CHAN_FB	0x1
 #define MBOX_CHAN_PROP	0x8
@@ -27,10 +27,8 @@
 #define MBOX_PROP_OK	0x80000000
 #define MBOX_PROP_ERR	0x80000001
 
-/*
- * function prototypes
- */
-int mailbox_write(unsigned channel, unsigned message);
-int mailbox_read(unsigned channel, unsigned *message);
+/* Function prototypes */
+int mailbox_write(int channel, uint32_t message);
+int mailbox_read(int channel, uint32_t *message);
 
 #endif /* MAILBOX_H */

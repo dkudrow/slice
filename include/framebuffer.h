@@ -16,29 +16,19 @@
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
-/*
- * framebuffer initialization data
- */
-struct fb_info_t {
-	unsigned width;
-	unsigned height;
-	unsigned virt_width;
-	unsigned virt_height;
-	unsigned pitch;				/* filled by GPU */
-	unsigned bits_per_pixel;
-	unsigned x_offset;
-	unsigned y_offset;
-	unsigned fb_base_addr;		/* filled by GPU */
-	unsigned screen_size;		/* filled by GPU */
-};
+/* Framebuffer parameters */
+#define FB_WIDTH 1024
+#define FB_HEIGHT 768
+#define FG_COLOR 0xFFFF
+#define BG_COLOR 0x0000
 
-/*
- * function prototypes
- */
+typedef unsigned short pixel_t;
+
+/* Function prototypes */
 int fb_init();
 int fb_test();
 int fb_border();
 int fb_scroll(int rows, int y);
-int fb_draw_char(unsigned x, unsigned y, unsigned c);
+int fb_draw_char(int x, int y, char c);
 
 #endif /* FRAMEBUFFER_H */

@@ -20,18 +20,18 @@
  *
  * The (SD) host controller must be reset and initialized at start up and
  * each time a card is inserted. We have to:
- * 	1. clear the host and card registers
- * 	2. configure and enable the clock
- * 	3. enable interrupts
+ *	1. clear the host and card registers
+ *	2. configure and enable the clock
+ *	3. enable interrupts
  *
  * Once host is initialized, the card must be identified. The ID sequence
  * is:
- * 	1. reset the card with the GO_IDLE_STATE command (CMD0)
- * 	2. check the card's voltage range with the SD_SEND_IF_COND (CMD8)
- * 	3. get the card's OCR register with SD_SEND_OP_COND (ACMD41)
- * 	4. send the host's OCR register with SD_SEND_OP_COND (ACMD41)
- * 	5. get the card's CID register with ALL_SEND_CID (CMD2)
- * 	6. get the card's RCA with SEND_RELATIVE_ADDR (CMD3)
+ *	1. reset the card with the GO_IDLE_STATE command (CMD0)
+ *	2. check the card's voltage range with the SD_SEND_IF_COND (CMD8)
+ *	3. get the card's OCR register with SD_SEND_OP_COND (ACMD41)
+ *	4. send the host's OCR register with SD_SEND_OP_COND (ACMD41)
+ *	5. get the card's CID register with ALL_SEND_CID (CMD2)
+ *	6. get the card's RCA with SEND_RELATIVE_ADDR (CMD3)
  *	7. select the card with SELECT_CARD (CMD7)
  * 
  * The card is now ready for data transfer operations. The default block
@@ -620,7 +620,7 @@ int emmc_init()
 int emmc_read_block(unsigned block, void *void_buf)
 {
 	unsigned cmd, resp, read_word, i;
-        unsigned *buf = (unsigned *)void_buf;
+	unsigned *buf = (unsigned *)void_buf;
 
 	debug_print(1, "Entering emmc_read_block().\n");
 
@@ -649,10 +649,10 @@ int emmc_read_block(unsigned block, void *void_buf)
 
 	/* get data from host */
 	for (i=0; i<BLOCK_SIZE; i+=4) {
-                read_word = *(unsigned *)(EMMC_DATA);
+		read_word = *(unsigned *)(EMMC_DATA);
 		/**buf++ = SWAP_ORDER_4(read_word);*/
 		*buf++ = read_word;
-        }
+	}
 
 	/* wait for transfer complete interrupt */
 	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
@@ -719,13 +719,13 @@ int emmc_write_block(unsigned block, unsigned *buf)
  */
 void emmc_dump_block(unsigned char *block)
 {
-        int i;
-        for (i=0; i<BLOCK_SIZE; i++) {
+	int i;
+	for (i=0; i<BLOCK_SIZE; i++) {
 		if (!(i % 32))
 			kprintf("\n");
-                kprintf("%x", block[i]>>4);
-                kprintf("%x", (block[i]) & 0xF);
-        }
+		kprintf("%x", block[i]>>4);
+		kprintf("%x", (block[i]) & 0xF);
+	}
 	kprintf("\n");
 }
 

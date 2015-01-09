@@ -1,7 +1,7 @@
 # include/
 Below is a brief summary of each file.
 
-*include/console.h*  -- console structure and function prototypes.
+*include/console.h* -- console structure and function prototypes.
 
 *include/debug.h* -- simple LED patterns for debugging before the console
 is online.

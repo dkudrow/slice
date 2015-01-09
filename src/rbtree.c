@@ -41,7 +41,7 @@
 /*
  * determine whether a node is red or black -- NULLs are black
  */
-#define rb_red(n) ((n) != NULL &&  (n)->color == RB_RED)
+#define rb_red(n) ((n) != NULL && (n)->color == RB_RED)
 #define rb_black(n) ((n) == NULL || (n)->color == RB_BLACK)
 
 /*

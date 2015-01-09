@@ -30,14 +30,17 @@ slice_main()
 
 	gpio_function_select(16, 1);
 
+	/* initialize framebuffer */
 	ret = fb_init();
 	if (ret != 0) {
 		error_solid();
 	}
 
+	/* initialize console */
 	console_init();
 	kprintf("Console initialized, welcome to Slice.\n");
 
+	/* initialize SD card */
 	emmc_init();
 
 	kprintf("Done.\n");

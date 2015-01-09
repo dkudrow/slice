@@ -19,22 +19,22 @@
  * Core to communicate to different elements within the VC. The mailbox is
  * laid out as follows:
  *
- * 	Mailbox base: 0x2000B880
+ *	Mailbox base: 0x2000B880
  *
- * 	offset		function
- * 	---------------------
- * 	0x00		Read
- * 	0x10		Peek
- * 	0x14		Sender
- * 	0x18		Status
- * 	0x1C		Config
- * 	0x20		Write
+ *	offset		function
+ *	---------------------
+ *	0x00		Read
+ *	0x10		Peek
+ *	0x14		Sender
+ *	0x18		Status
+ *	0x1C		Config
+ *	0x20		Write
  *
  * Messages are 32 bits arranged as follows:
  *
- * 	---------------------------
- * 	| 31:4 DATA | 3:0 CHANNEL |
- * 	---------------------------
+ *	---------------------------
+ *	| 31:4 DATA | 3:0 CHANNEL |
+ *	---------------------------
  *
  * Be wary when writing addresses to the mailbox - the bottom 4 bits will
  * be clobbered by the channel so make certain that the address is aligned
@@ -49,12 +49,12 @@
 
 #include <errno.h>
 #include <mailbox.h>
+#include <util.h>
 
 /*
- * mailbox base address and register offsets
+ * Mailbox base address and register offsets
  */
 #define MBOX_BASE		0x2000B880
-
 #define	MBOX_READ		0x0
 #define MBOX_POLL		0x10
 #define MBOX_SEND		0x14
@@ -64,12 +64,12 @@
 
 
 /*
- * write a message to the VideoCore mailbox
+ * Write a message to the VideoCore mailbox
  * note: message data is *not* shifted!
  */
-int mailbox_write(unsigned channel, unsigned message)
+int mailbox_write(int channel, uint32_t message)
 {
-	unsigned reg;
+	uint32_t reg;
 
 	/* validate inputs */
 	if (channel > MBOX_CHAN_MAX)
@@ -81,22 +81,24 @@ int mailbox_write(unsigned channel, unsigned message)
 	reg = (message & ~0xF) | (channel & 0xF);
 
 	/* wait for the status register to clear for writing */
-	while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 31))
+	/*while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 31))*/
+	while (READ4(MBOX_BASE + MBOX_STATUS) & (1 << 31))
 		;
 
 	/* write message to mailbox */
-	*(unsigned *)(MBOX_BASE + MBOX_WRITE) = reg;
+	/**(unsigned *)(MBOX_BASE + MBOX_WRITE) = reg;*/
+	WRITE4(MBOX_BASE + MBOX_WRITE, reg);
 
 	return 0;
 }
 
 /*
- * read a message from the VideoCore mailbox
+ * Read a message from the VideoCore mailbox
  * note: message data is *not* shifted!
  */
-int mailbox_read(unsigned channel, unsigned *message)
+int mailbox_read(int channel, uint32_t *message)
 {
-	unsigned reg;
+	uint32_t reg;
 
 	/* validate input */
 	if (channel > MBOX_CHAN_MAX)
@@ -105,11 +107,13 @@ int mailbox_read(unsigned channel, unsigned *message)
 	/* loop until we are on the right channel */
 	do {
 		/* wait for the status register to clear for reading */
-		while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 30))
+		/*while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 30))*/
+		while (READ4(MBOX_BASE + MBOX_STATUS) & (1 << 30))
 			;
 
 		/* read message to mailbox */
-		reg = *(unsigned *)(MBOX_BASE + MBOX_READ);
+		/*reg = *(unsigned *)(MBOX_BASE + MBOX_READ);*/
+		reg = READ4(MBOX_BASE + MBOX_READ);
 	} while (channel != (reg & 0xF));
 
 	/* save message */
