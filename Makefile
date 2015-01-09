@@ -128,6 +128,7 @@ clean-deps:
 
 clean:
 	rm -f $(TESTBUILD)/*.o
+	rm -f $(TEST)/*-test
 	rm -f $(BUILD)/*.o
 	rm -f $(TARGETS)
 
