@@ -25,8 +25,8 @@
 #define GPIO_MAX_PIN	53
 #define GPIO_MAX_FUNC	7
 
-#include "errno.h"
-#include "gpio.h"
+#include <errno.h>
+#include <gpio.h>
 
 /*
  * enable a pin in the GPIO controller

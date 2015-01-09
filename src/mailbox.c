@@ -47,8 +47,8 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "errno.h"
-#include "mailbox.h"
+#include <errno.h>
+#include <mailbox.h>
 
 /*
  * mailbox base address and register offsets

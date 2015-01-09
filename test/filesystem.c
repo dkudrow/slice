@@ -1,6 +1,5 @@
 #include <emmc.h>
 #include <filesystem.h>
-#include <stdio.h>
 #include <string.h>
 
 /*

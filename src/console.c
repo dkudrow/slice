@@ -2,7 +2,7 @@
  *
  * src/console.c
  *
- * console driver
+ * Console driver
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014
@@ -22,9 +22,9 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "console.h"
-#include "framebuffer.h"
-#include "timer.h"
+#include <console.h>
+#include <framebuffer.h>
+#include <timer.h>
 
 /*
  * one conosle to rule them all

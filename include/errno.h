@@ -2,7 +2,7 @@
  *
  * include/errno.h
  *
- * error codes
+ * Error codes
  *
  * Author:  Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:  March 7 2014

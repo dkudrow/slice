@@ -1,8 +1,6 @@
 #
 # Makefile
 #
-# Top level makefile
-#
 # Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
 # Date:		March 7, 2014
 #
@@ -10,48 +8,127 @@
 # All rights reserved, see LICENSE.txt for details.
 #
 
-include Makefile.common
+#~==== source tree layout ===============================================~#
+ROOT = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-IMAGE = $(ROOT)/$(KERNEL).img
-LIST = $(ROOT)/$(KERNEL).list
-ELF = $(BUILD)/$(KERNEL).elf
+SRC = $(ROOT)/src
+INC = $(ROOT)/include
+BUILD = $(SRC)/build
+
+TEST = $(ROOT)/test
+TESTBUILD = $(TEST)/build
+
+#~==== ARM cross compilation tools ======================================~#
+ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi
+ARM = $(ARMDIR)/bin/arm-bcm2708-linux-gnueabi
+
+ARMCC = $(ARM)-gcc
+ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles \
+	    -DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
+
+ARMAS = $(ARM)-as
+ARMASFLAGS =
+
+ARMLD = $(ARM)-ld
+ARMLDFLAGS = --no-undefined --fatal-warnings
+
+OBJCOPY = $(ARM)-objcopy
+
+OBJDUMP = $(ARM)-objdump
+
+#~==== test compilation tools ===========================================~#
+TESTCC = clang
+TESTCFLAGS = -Wall -g -I$(TEST) -I$(INC)
 
 #~==== targets ==========================================================~#
-.PHONY: test
+IMAGE = $(ROOT)/kernel.img
+LIST = $(ROOT)/kernel.list
+ELF = $(BUILD)/kernel.elf
+MAP = $(ROOT)/kernel.map
+TARGETS = $(IMAGE) $(LIST) $(ELF) $(MAP)
 
+COBJ :=
+COBJ += console.o
+COBJ += emmc.o
+#COBJ += filesystem.o
+COBJ += framebuffer.o
+COBJ += gpio.o
+COBJ += irq.o
+COBJ += led.o
+COBJ += mailbox.o
+COBJ += main.o
+COBJ += malloc.o
+COBJ += kprintf.o
+COBJ += rbtree.o
+COBJ += string.o
+COBJ += timer.o
+COBJ := $(addprefix $(BUILD)/, $(COBJ))
+
+ASMOBJ := 
+ASMOBJ += start.o
+ASMOBJ := $(addprefix $(BUILD)/, $(ASMOBJ))
+
+OBJ := $(COBJ) $(ASMOBJ)
+
+#~==== rules ============================================================~#
 all: image list
 
 image: $(IMAGE)
 
 list: $(LIST)
 
-test:
-	$(MAKE) -C $(TEST) all
-
-test-%:
-	$(MAKE) -C $(TEST) $@
-
-rebuild: all
-#~=======================================================================~#
-
-# build the kernel listing
 $(LIST): $(ELF)
 	$(OBJDUMP) -d $(ELF) > $@
 
-# build the kernel image
 $(IMAGE): $(ELF)
 	$(OBJCOPY) $(ELF) -O binary $@
 
-$(ELF):
-	$(MAKE) -C $(SRC)
+$(ELF): $(OBJ) 
+	$(ARMLD) $(ARMLDFLAGS) -T kernel.ld -Map $(MAP) -o $@ $^
 
-# make the build directory if it doesn't exist
-$(BUILD):
-	mkdir -p $@
+$(BUILD)/%.o: $(SRC)/%.c
+	$(ARMCC) $(ARMCFLAGS) -MD -o $@ -c $<
+
+$(BUILD)/%.o: $(SRC)/%.S
+	$(ARMAS) $(ARMASFLAGS) -o $@ -c $<
+
+#~==== test targets =====================================================~#
+TEST_OBJ = main-test.o string.o
+MALLOC_OBJ := $(TEST_OBJ) malloc-test.o malloc.o
+RBTREE_OBJ := $(TEST_OBJ) rbtree-test.o rbtree.o
+FS_OBJ := $(TEST_OBJ) filesystem-test.o filesystem.o emmc.o
+
+TESTS = malloc-test rbtree-test fs-test
+
+#~==== test rules =======================================================~#
+test: $(TESTS)
+
+rbtree-test: $(addprefix $(TESTBUILD)/, $(RBTREE_OBJ))
+	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^
+
+malloc-test: $(addprefix $(TESTBUILD)/, $(MALLOC_OBJ))
+	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^
+
+fs-test: $(addprefix $(TESTBUILD)/, $(FS_OBJ))
+	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^
+
+$(TESTBUILD)/emmc.o: $(TEST)/dummy_emmc.c
+	$(TESTCC) $(TESTCFLAGS) -MD -o $@ -c $<
+
+$(TESTBUILD)/%-test.o: $(TEST)/%.c
+	$(TESTCC) $(TESTCFLAGS) -MD -o $@ -c $<
+
+$(TESTBUILD)/%.o: $(SRC)/%.c
+	$(TESTCC) $(TESTCFLAGS) -MD -o $@ -c $<
+
+#~==== clean ============================================================~#
+clean-deps:
+	rm -f $(TESTBUILD)/*.d
+	rm -f $(BUILD)/*.d
 
 clean:
-	$(MAKE) -C $(TEST) clean
-	$(MAKE) -C $(SRC) clean
-	rm -f $(IMAGE)
-	rm -f $(LIST)
+	rm -f $(TESTBUILD)/*.o
+	rm -f $(BUILD)/*.o
+	rm -f $(TARGETS)
+
 

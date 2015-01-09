@@ -2,7 +2,7 @@
  *
  * src/led.c
  *
- * some simple LED patterns for debugging until the console works
+ * Some simple LED patterns for debugging until the console works
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014
@@ -13,8 +13,8 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "gpio.h"
-#include "timer.h"
+#include <gpio.h>
+#include <timer.h>
 
 /*
  * blink the LED forever

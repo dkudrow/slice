@@ -2,10 +2,10 @@
  *
  * include/console.h
  *
- * console driver
+ * Console driver
  *
- * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
- * Date:	March 7 2014
+ * Author:  Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:  March 7 2014
  *
  * Copyright (c) 2014, Daniel Kudrow
  * All rights reserved, see LICENSE.txt for details.
@@ -20,10 +20,10 @@
 
 /* console structure holds the current state of the screen */
 struct console_t {
-	unsigned rows;		/* number of rows */
-	unsigned cols;		/* number of rows */
-	unsigned cur_row;	/* current rows */
-	unsigned cur_col;	/* current columns */
+  unsigned rows;    /* number of rows */
+  unsigned cols;    /* number of rows */
+  unsigned cur_row; /* current rows */
+  unsigned cur_col; /* current columns */
 };
 
 /* function prototypes */

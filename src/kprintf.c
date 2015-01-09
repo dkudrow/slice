@@ -1,8 +1,8 @@
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
- * src/printf.c
+ * src/kprintf.c
  *
- * allow the kernel to print directly to the console
+ * Print kernel messages
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014
@@ -14,7 +14,7 @@
  */
 
 #include <stdarg.h>
-#include "console.h"
+#include <console.h>
 
 #define DEC_MAX 10		/* max digitis in a decimal integer */
 #define HEX_MAX 8		/* max digitis in a hex integer */
@@ -88,7 +88,7 @@ static void print_x(unsigned n)
 /*
  * simple formatted printing
  */
-void printf(char *format_str, ...)
+void kprintf(char *format_str, ...)
 {
 	char *s = format_str;
 	va_list arg_list;

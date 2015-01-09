@@ -14,9 +14,10 @@
  */
 
 #include <emmc.h>
-#include <util.h>
 #include <filesystem.h>
+#include <string.h>
 #include <types.h>
+#include <util.h>
 
 #ifdef DEBUG_FS
 #define PRINT_DEBUG
@@ -356,16 +357,16 @@ int fs_read(const char *filename, unsigned char* buf, size_t off, size_t count)
  */
 void fs_dump_part_table()
 {
-	printf("~~~ Volume ~~~\n");
-	printf("vol_lba: 0x%x\t", volume.vol_lba);
-	printf("size: %uMB\t", volume.size*volume.sector_size/1024/1024);
-	printf("sector_size: %u\t", volume.sector_size);
-	printf("cluster_size: %u\n", volume.cluster_size);
-	printf("fat_size: %u\t", volume.fat_size);
-	printf("num_fats: %u\t", volume.num_fats);
-	printf("cluster_lba 0x%x\t", volume.cluster_lba);
-	printf("fat_lba 0x%x\t", volume.fat_lba);
-	printf("root: 0x%x\n\n", volume.root);
+	kprintf("~~~ Volume ~~~\n");
+	kprintf("vol_lba: 0x%x\t", volume.vol_lba);
+	kprintf("size: %uMB\t", volume.size*volume.sector_size/1024/1024);
+	kprintf("sector_size: %u\t", volume.sector_size);
+	kprintf("cluster_size: %u\n", volume.cluster_size);
+	kprintf("fat_size: %u\t", volume.fat_size);
+	kprintf("num_fats: %u\t", volume.num_fats);
+	kprintf("cluster_lba 0x%x\t", volume.cluster_lba);
+	kprintf("fat_lba 0x%x\t", volume.fat_lba);
+	kprintf("root: 0x%x\n\n", volume.root);
 
 	/* read root dir */
 	unsigned char cluster[volume.sector_size * volume.cluster_size];
@@ -375,8 +376,8 @@ void fs_dump_part_table()
 	emmc_dump_block(cluster);
 	while ((next_dirent = fs_readdir(cluster, next_dirent, &dirent))) {
 		if (strcmp(dirent.short_name, "")) {
-			printf("Long name:  '%s'\n", dirent.long_name);
-			printf("Short name: '%s'\n", dirent.short_name);
+			kprintf("Long name:  '%s'\n", dirent.long_name);
+			kprintf("Short name: '%s'\n", dirent.short_name);
 		}
 	}
 }

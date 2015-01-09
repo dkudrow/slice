@@ -4,8 +4,8 @@
  *
  * Kernel print messages
  *
- * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
- * Date:	March 26 2014
+ * Author:  Daniel Kudrow (dkudrow@cs.ucsb.edu)
+ * Date:  March 26 2014
  *
  * Copyright (c) 2014, Daniel Kudrow
  * All rights reserved, see LICENSE.txt for details.
@@ -27,26 +27,26 @@
  */
 #ifdef PRINT_DEBUG
 #define debug_print(level, ...)\
-	if (level >= DEBUG_LEVEL) {\
-		printf("DEBUG (%s): ", PRINT_HANDLE);\
-		printf(__VA_ARGS__);\
-	}
+  if (level >= DEBUG_LEVEL) {\
+    kprintf("DEBUG (%s): ", PRINT_HANDLE);\
+    kprintf(__VA_ARGS__);\
+  }
 #else
 #define debug_print(...)
 #endif
 
 #ifdef PRINT_WARN
 #define warn_print(...)\
-	printf("WARN (%s): ", PRINT_HANDLE);\
-	printf(__VA_ARGS__);
+  kprintf("WARN (%s): ", PRINT_HANDLE);\
+  kprintf(__VA_ARGS__);
 #else
 #define warn_print(...)
 #endif
 
 #ifdef PRINT_ERROR
 #define error_print(...)\
-	printf("ERROR (%s): ", PRINT_HANDLE);\
-	printf(__VA_ARGS__);
+  kprintf("ERROR (%s): ", PRINT_HANDLE);\
+  kprintf(__VA_ARGS__);
 #else
 #define error_print(...)
 #endif

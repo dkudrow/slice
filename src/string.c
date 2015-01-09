@@ -1,8 +1,8 @@
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  *
- * src/memory_utils.c
+ * src/string.c
  *
- * memory utilities
+ * C string functions
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014

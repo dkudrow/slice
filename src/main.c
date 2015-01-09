@@ -2,7 +2,7 @@
  *
  * src/main.c
  *
- * main entry point to Slice OS
+ * Main entry point to Slice OS
  *
  * Author:	Daniel Kudrow (dkudrow@cs.ucsb.edu)
  * Date:	March 7 2014
@@ -13,17 +13,13 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "debug.h"
-#include "emmc.h"
-#include "framebuffer.h"
-#include "gpio.h"
-#include "led.h"
-#include "timer.h"
-#include "util.h"
-#include "filesystem.h"
-
-char sa[] = "Greetings from global sa[]\n";
-char *sp = "Greetings from global *sp\n";
+#include <debug.h>
+#include <emmc.h>
+#include <framebuffer.h>
+#include <gpio.h>
+#include <led.h>
+#include <timer.h>
+#include <util.h>
 
 /*
  * entry point to our operating system
@@ -40,14 +36,11 @@ slice_main()
 	}
 
 	console_init();
-	printf("Console initialized, welcome to Slice.\n");
+	kprintf("Console initialized, welcome to Slice.\n");
 
 	emmc_init();
 
-	printf("Done.\n");
-
-        fat32_init();
-        fat32_dump_part_table();
+	kprintf("Done.\n");
 
 	error_blink();
 }

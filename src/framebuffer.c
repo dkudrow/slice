@@ -42,10 +42,11 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "framebuffer.h"
-#include "mailbox.h"
-#include "memory.h"
-#include "util.h"
+#include <framebuffer.h>
+#include <mailbox.h>
+#include <memory.h>
+#include <string.h>
+#include <util.h>
 
 #include "font.h"
 

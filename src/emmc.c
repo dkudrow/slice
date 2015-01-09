@@ -40,9 +40,9 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include "mailbox.h"
-#include "timer.h"
-#include "util.h"
+#include <mailbox.h>
+#include <timer.h>
+#include <util.h>
 
 #ifdef DEBUG_EMMC
 #define PRINT_DEBUG
@@ -722,11 +722,11 @@ void emmc_dump_block(unsigned char *block)
         int i;
         for (i=0; i<BLOCK_SIZE; i++) {
 		if (!(i % 32))
-			printf("\n");
-                printf("%x", block[i]>>4);
-                printf("%x", (block[i]) & 0xF);
+			kprintf("\n");
+                kprintf("%x", block[i]>>4);
+                kprintf("%x", (block[i]) & 0xF);
         }
-	printf("\n");
+	kprintf("\n");
 }
 
 
@@ -735,32 +735,32 @@ void emmc_dump_block(unsigned char *block)
  */
 static void emmc_dump_registers()
 {
-	printf("$>~~~~~ EMMC REGISTER DUMP ~~~~~<$\n");
+	kprintf("$>~~~~~ EMMC REGISTER DUMP ~~~~~<$\n");
 
-	printf("ARG2: %x, BLKSIZCNT: %x, ARG1: %x, CMDTM: %x\n",
+	kprintf("ARG2: %x, BLKSIZCNT: %x, ARG1: %x, CMDTM: %x\n",
 			*(unsigned *)(EMMC_ARG2), *(unsigned *)(EMMC_BLKSIZCNT),
 			*(unsigned *)(EMMC_ARG1), *(unsigned *)(EMMC_CMDTM));
 
-	printf("RESP0: %x, RESP1: %x, RESP2: %x, RESP3: %x\n",
+	kprintf("RESP0: %x, RESP1: %x, RESP2: %x, RESP3: %x\n",
 			*(unsigned *)(EMMC_RESP0), *(unsigned *)(EMMC_RESP1),
 			*(unsigned *)(EMMC_RESP2), *(unsigned *)(EMMC_RESP3));
 
-	printf("DATA: %x, STATUS: %x, CTRL0: %x, CTRL1: %x\n",
+	kprintf("DATA: %x, STATUS: %x, CTRL0: %x, CTRL1: %x\n",
 			*(unsigned *)(EMMC_DATA), *(unsigned *)(EMMC_STATUS),
 			*(unsigned *)(EMMC_CTRL0), *(unsigned *)(EMMC_CTRL1));
 
-	printf("INT_FLAG: %x, INT_MASK: %x, INT_ENBL: %x, CTRL2: %x\n",
+	kprintf("INT_FLAG: %x, INT_MASK: %x, INT_ENBL: %x, CTRL2: %x\n",
 			*(unsigned *)(EMMC_INTERRUPT), *(unsigned *)(EMMC_INT_MASK),
 			*(unsigned *)(EMMC_INT_ENBL), *(unsigned *)(EMMC_CTRL2));
 
-	printf("FORCE_INT: %x, TIMEOUT: %x, DBG: %x, FIFO_CFG: %x\n",
+	kprintf("FORCE_INT: %x, TIMEOUT: %x, DBG: %x, FIFO_CFG: %x\n",
 			*(unsigned *)(EMMC_FORCE_INT), *(unsigned *)(EMMC_TIMEOUT),
 			*(unsigned *)(EMMC_DBG), *(unsigned *)(EMMC_FIFO_CFG));
 
-	printf("FIFO_EN: %x, TUNE_STEP: %x, TUNE_STD: %x, TUNE_DDR: %x\n",
+	kprintf("FIFO_EN: %x, TUNE_STEP: %x, TUNE_STD: %x, TUNE_DDR: %x\n",
 			*(unsigned *)(EMMC_FIFO_EN), *(unsigned *)(EMMC_TUNE_STEP),
 			*(unsigned *)(EMMC_TUNE_STD), *(unsigned *)(EMMC_TUNE_DDR));
 
-	printf("INT_SPI: %x, SLOTISR: %x\n",
+	kprintf("INT_SPI: %x, SLOTISR: %x\n",
 			*(unsigned *)(EMMC_INT_SPI), *(unsigned *)(EMMC_SLOT_VER));
 }
