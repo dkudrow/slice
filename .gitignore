@@ -16,4 +16,4 @@ tags
 refs/
 
 # test executables
-test-*
+test/*-test

@@ -24,7 +24,8 @@ ARM = $(ARMDIR)/bin/arm-bcm2708-linux-gnueabi
 
 ARMCC = $(ARM)-gcc
 ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles \
-	    -DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
+			-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
+LIBGCC = $(ARMDIR)/lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/libgcc.a
 
 ARMAS = $(ARM)-as
 ARMASFLAGS =
@@ -66,6 +67,7 @@ COBJ := $(addprefix $(BUILD)/, $(COBJ))
 
 ASMOBJ := 
 ASMOBJ += start.o
+ASMOBJ += division.o
 ASMOBJ := $(addprefix $(BUILD)/, $(ASMOBJ))
 
 OBJ := $(COBJ) $(ASMOBJ)
@@ -83,7 +85,7 @@ $(LIST): $(ELF)
 $(IMAGE): $(ELF)
 	$(OBJCOPY) $(ELF) -O binary $@
 
-$(ELF): $(OBJ) 
+$(ELF): $(OBJ) $(LIBGCC)
 	$(ARMLD) $(ARMLDFLAGS) -T kernel.ld -Map $(MAP) -o $@ $^
 
 $(BUILD)/%.o: $(SRC)/%.c
@@ -102,7 +104,10 @@ FS_OBJ := $(TEST_OBJ) filesystem-test.o filesystem.o emmc.o
 TESTS = malloc-test rbtree-test fs-test kprintf-test
 
 #~==== test rules =======================================================~#
-test: $(TESTS)
+test: tests
+	for t in $(TESTS); do $(TEST)/$$t; done
+
+tests: $(TESTS)
 
 rbtree-test: $(addprefix $(TESTBUILD)/, $(RBTREE_OBJ))
 	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^

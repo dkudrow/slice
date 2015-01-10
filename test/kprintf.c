@@ -1,6 +1,8 @@
 #include <string.h>
 #include <util.h>
 
+#include "test.h"
+
 const char *test_name = "KPRINTF";
 
 const char *run_test()

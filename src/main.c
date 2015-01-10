@@ -40,6 +40,10 @@ slice_main()
 	console_init();
 	kprintf("Console initialized, welcome to Slice.\n");
 
+	/* test division */
+	kprintf ("div test: %x\n", 0xdeadbeef);
+	kprintf ("div test: %u\n", 0x1000);
+
 	/* initialize SD card */
 	emmc_init();
 

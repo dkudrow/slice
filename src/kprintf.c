@@ -16,11 +16,7 @@
 #include <stdarg.h>
 #include <console.h>
 
-#include "test.h"
-
 #define MAX_DIGITS 11	/* max octal digits in an integer */
-#define D_MAX 10	/* max decimal digits in an integer */
-#define HEX_MAX 8		/* max hexadecimal digits in an integer */
 
 static const char digits[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8',
 	'9', 'A', 'B', 'C', 'D', 'E', 'F' };
@@ -50,7 +46,7 @@ static void format_int(int base, unsigned uval)
 }
 
 /*
- * simple formatted printing
+ * Formatted printing for the kernel
  */
 void kprintf(char *format_str, ...)
 {
@@ -79,7 +75,7 @@ void kprintf(char *format_str, ...)
 			/* character */
 			case 'c':
 				arg_int = va_arg(arg_list, int);
-				console_putc((char)arg_int);
+				console_putc(arg_int);
 				break;
 			/* unsigned decimal integer */
 			case 'u':
