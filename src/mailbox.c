@@ -81,12 +81,10 @@ int mailbox_write(int channel, uint32_t message)
 	reg = (message & ~0xF) | (channel & 0xF);
 
 	/* wait for the status register to clear for writing */
-	/*while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 31))*/
 	while (READ4(MBOX_BASE + MBOX_STATUS) & (1 << 31))
 		;
 
 	/* write message to mailbox */
-	/**(unsigned *)(MBOX_BASE + MBOX_WRITE) = reg;*/
 	WRITE4(MBOX_BASE + MBOX_WRITE, reg);
 
 	return 0;
@@ -107,12 +105,10 @@ int mailbox_read(int channel, uint32_t *message)
 	/* loop until we are on the right channel */
 	do {
 		/* wait for the status register to clear for reading */
-		/*while (*(unsigned *)(MBOX_BASE + MBOX_STATUS) & (1 << 30))*/
 		while (READ4(MBOX_BASE + MBOX_STATUS) & (1 << 30))
 			;
 
 		/* read message to mailbox */
-		/*reg = *(unsigned *)(MBOX_BASE + MBOX_READ);*/
 		reg = READ4(MBOX_BASE + MBOX_READ);
 	} while (channel != (reg & 0xF));
 

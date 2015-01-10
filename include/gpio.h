@@ -16,7 +16,7 @@
 #ifndef GPIO_H
 #define GPIO_H
 
-/* function prototypes */
+/* Function prototypes */
 int gpio_function_select(unsigned pin, unsigned function);
 int gpio_set(unsigned pin);
 int gpio_clear(unsigned pin);

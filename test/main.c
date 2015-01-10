@@ -18,10 +18,6 @@
 extern const char *test_name;
 const char *run_test();
 
-void kprintf(char *format_str, ...)
-{
-}
-
 int main() {
 	const char *result = run_test();
 

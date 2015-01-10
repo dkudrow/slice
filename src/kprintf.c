@@ -16,73 +16,37 @@
 #include <stdarg.h>
 #include <console.h>
 
-#define DEC_MAX 10		/* max digitis in a decimal integer */
-#define HEX_MAX 8		/* max digitis in a hex integer */
+#include "test.h"
+
+#define MAX_DIGITS 11	/* max octal digits in an integer */
+#define D_MAX 10	/* max decimal digits in an integer */
+#define HEX_MAX 8		/* max hexadecimal digits in an integer */
+
+static const char digits[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8',
+	'9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
 /*
- * print unsigned decimal integer
+ * Format an integer to hexadecimal, signed decimal or unsigned decimal
  */
-static void print_u(unsigned n)
+static void format_int(int base, unsigned uval)
 {
-	int i;
-	int buf[DEC_MAX];
+	int i=0;
+	int buf[MAX_DIGITS];
 
-	for (i=1; i<=DEC_MAX; i++) {
-		buf[DEC_MAX-i] = n % 10;
-		n = (n) ? n/10 : 0;
-	}
-	for (i=0; buf[i]==0 && i<DEC_MAX-1; i++)
-		;
-
-	while (i < DEC_MAX)
-			console_putc(48 + buf[i++]);
-
-}
-
-/*
- * print a signed decimal integer
- */
-static void print_i(int n)
-{
-	int i;
-	int buf[DEC_MAX];
-
-	if (n < 0) {
+	if (base < 0 && (int)uval < 0) {
 		console_putc('-');
-		n *= -1;
+		uval = -1*(int)uval;
+		base *= -1;
 	}
-	for (i=1; i<=DEC_MAX; i++) {
-		buf[DEC_MAX-i] = n % 10;
-		n = (n) ? n/10 : 0;
-	}
-	for (i=0; buf[i]==0 && i<DEC_MAX-1; i++)
-		;
 
-	while (i < DEC_MAX)
-		console_putc(48 + buf[i++]);
-}
+	do {
+		buf[i++] = uval % base;
+		uval /= base;
+	} while (uval != 0);
 
-/*
- * print an unsigned hex integer
- */
-static void print_x(unsigned n)
-{
-	int i;
-	int buf[HEX_MAX];
-
-	for (i=1; i<=HEX_MAX; i++) {
-		buf[HEX_MAX-i] = n % 16;
-		n = (n) ? n/16 : 0;
-	}
-	for (i=0; buf[i]==0 && i<HEX_MAX-1; i++)
-		;
-
-	while (i < HEX_MAX) {
-		if (buf[i] < 10)
-			console_putc(48 + buf[i++]);
-		else
-			console_putc(55 + buf[i++]);
-	}
+	do {
+		console_putc(digits[buf[--i]]);
+	} while (i);
 }
 
 /*
@@ -120,19 +84,22 @@ void kprintf(char *format_str, ...)
 			/* unsigned decimal integer */
 			case 'u':
 				arg_int = va_arg(arg_list, int);
-				print_u(arg_int);
+				/*format_int(arg_int);*/
+				format_int(10, arg_int);
 				break;
 			/* signed decimal integer */
 			case 'd':
 			case 'i':
 				arg_int = va_arg(arg_list, int);
-				print_i(arg_int);
+				/*print_i(arg_int);*/
+				format_int(-10, arg_int);
 				break;
 			/* unsigned hexadecimal integer */
 			case 'p':
 			case 'x':
 				arg_int = va_arg(arg_list, int);
-				print_x(arg_int);
+				/*print_x(arg_int);*/
+				format_int(16, arg_int);
 				break;
 			/* string */
 			case 's':

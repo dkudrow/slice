@@ -16,19 +16,13 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#define CONSOLE_BUF_SIZE 256
+#define CONS_BUF_SIZE 256
+#define CONS_NUM_COLS 80
+#define CONS_NUM_ROWS 40
 
-/* console structure holds the current state of the screen */
-struct console_t {
-	unsigned rows;		/* number of rows */
-	unsigned cols;		/* number of rows */
-	unsigned cur_row;	/* current rows */
-	unsigned cur_col;	/* current columns */
-};
-
-/* function prototypes */
+/* Function prototypes */
 void console_init();
 void console_clear();
-void console_putc(int c);
+void console_putc(char c);
 
 #endif /* CONSOLE_H */

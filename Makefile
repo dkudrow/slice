@@ -93,12 +93,13 @@ $(BUILD)/%.o: $(SRC)/%.S
 	$(ARMAS) $(ARMASFLAGS) -o $@ -c $<
 
 #~==== test targets =====================================================~#
-TEST_OBJ = main-test.o string.o
+TEST_OBJ = main-test.o string.o kprintf.o dummy_console-test.o
 MALLOC_OBJ := $(TEST_OBJ) malloc-test.o malloc.o
 RBTREE_OBJ := $(TEST_OBJ) rbtree-test.o rbtree.o
+KPRINTF_OBJ := $(TEST_OBJ) kprintf-test.o
 FS_OBJ := $(TEST_OBJ) filesystem-test.o filesystem.o emmc.o
 
-TESTS = malloc-test rbtree-test fs-test
+TESTS = malloc-test rbtree-test fs-test kprintf-test
 
 #~==== test rules =======================================================~#
 test: $(TESTS)
@@ -110,6 +111,9 @@ malloc-test: $(addprefix $(TESTBUILD)/, $(MALLOC_OBJ))
 	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^
 
 fs-test: $(addprefix $(TESTBUILD)/, $(FS_OBJ))
+	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^
+
+kprintf-test: $(addprefix $(TESTBUILD)/, $(KPRINTF_OBJ))
 	$(TESTCC) $(TESTCFLAGS) -o $(TEST)/$@ $^
 
 $(TESTBUILD)/emmc.o: $(TEST)/dummy_emmc.c

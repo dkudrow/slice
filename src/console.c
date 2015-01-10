@@ -24,26 +24,32 @@
 
 #include <console.h>
 #include <framebuffer.h>
-#include <timer.h>
 
 /*
  * one conosle to rule them all
  */
-struct console_t console;
+struct console_t {
+	unsigned rows;		/* number of rows */
+	unsigned cols;		/* number of rows */
+	unsigned cur_row;	/* current rows */
+	unsigned cur_col;	/* current columns */
+} console;
+
 
 /*
- * initialize a console
+ * Initialize a console
  */
 void console_init()
 {
-	console.cols = 80;
-	console.rows = 40;
+	/* TODO fit console to framebuffer */
+	console.cols = CONS_NUM_COLS;
+	console.rows = CONS_NUM_ROWS;
 	console.cur_row = 0;
 	console.cur_col = 0;
 }
 
 /*
- * clear the screen
+ * Clear the screen
  */
 void console_clear()
 {
@@ -51,9 +57,9 @@ void console_clear()
 }
 
 /*
- * write one character onto the console
+ * Write one character onto the console
  */
-void console_putc(int c)
+void console_putc(char c)
 {
 	if (console.cur_row == console.rows) {
 		fb_scroll(console.rows, 1);

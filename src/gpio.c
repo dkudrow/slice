@@ -13,20 +13,20 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
+#include <errno.h>
+#include <gpio.h>
+#include <util.h>
+
 /*
  * GPIO controller base address and register offsets
  */
 #define GPIO_BASE		0x20200000
-
 #define GPIO_FSEL		0x0
 #define GPIO_SET		0x1C
 #define GPIO_CLR		0x28
 
 #define GPIO_MAX_PIN	53
 #define GPIO_MAX_FUNC	7
-
-#include <errno.h>
-#include <gpio.h>
 
 /*
  * enable a pin in the GPIO controller
@@ -48,14 +48,14 @@ int gpio_function_select(unsigned pin, unsigned function)
 	offset = pin - (bank * 10);
 
 	/* read the register from memory */
-	reg = *(unsigned *)(GPIO_BASE + GPIO_FSEL + bank);
+	reg = READ4(GPIO_BASE + GPIO_FSEL + bank);
 
 	/* reset the function */
 	reg &= ~(7 << offset);
 	reg |= (function << offset);
 
 	/* write back to memory */
-	*(unsigned *)(GPIO_BASE + GPIO_FSEL + bank) = reg;
+	WRITE4(GPIO_BASE + GPIO_FSEL + bank, reg);
 
 	return 0;
 }
@@ -76,7 +76,7 @@ int gpio_set(unsigned pin)
 	offset = pin - (bank * 32);
 
 	/* write the correct bit in memory */
-	*(unsigned *)(GPIO_BASE + GPIO_SET + bank) = (1 << offset);
+	WRITE4(GPIO_BASE + GPIO_SET + bank, 1 << offset);
 
 	return 0;
 }
@@ -97,7 +97,7 @@ int gpio_clear(unsigned pin)
 	offset = pin - (bank * 32);
 
 	/* write the correct bit in memory */
-	*(unsigned *)(GPIO_BASE + GPIO_CLR + bank) = (1 << offset);
+	WRITE4(GPIO_BASE + GPIO_CLR + bank, 1 << offset);
 
 	return 0;
 }

@@ -38,7 +38,7 @@
 /*
  * Return true if dirent is a long name directory entry
  */
-#define FAT32_IS_LONG(dirent) (READ_1(((uint8_t *)dirent)+11) == 0x0F)
+#define FAT32_IS_LONG(dirent) (READ1(((uint8_t *)dirent)+11) == 0x0F)
 
 #define VALID_CHAR(c) ( ((c) >= '^' && (c) <= 'z') ||				\
 		((c) >= '@' && (c) <= 'Z') || ((c) >= '0' && (c) <= '9') ||	\
