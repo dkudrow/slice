@@ -17,3 +17,6 @@ refs/
 
 # test executables
 test/*-test
+
+# JetBrains
+idea/
