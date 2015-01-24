@@ -44,8 +44,11 @@
 .set FIQ_EN,	0x40		@ FIQ enable bit
 
 @ Slice memory layout
-.set SVC_STACK,	0x8000		@ start of system stack
+.set SVC_STACK,	0x8000	@ start of system stack
 .set IRQ_STACK, 0x4000		@ start of IRQ handler stack
+.set FIQ_STACK, 0x3000		@ start of FIQ handler stack
+.set ABT_STACK, 0x2800		@ start of ABT handler stack
+.set UND_STACK, 0x2000		@ start of UND handler stack
 
 @ Interrupt vector table
 @
@@ -146,8 +149,19 @@ bic	r0, r0, #SYS_MODE
 
 orr	r1, r0, #IRQ_MODE
 msr	cpsr_c, r1	@ switch to IRQ mode
-
 ldr	sp, =IRQ_STACK	@ set IRQ mode stack pointer
+
+orr	r1, r0, #FIQ_MODE
+msr	cpsr_c, r1	@ switch to FIQ mode
+ldr	sp, =FIQ_STACK	@ set FIQ mode stack pointer
+
+orr	r1, r0, #ABT_MODE
+msr	cpsr_c, r1	@ switch to ABT mode
+ldr	sp, =ABT_STACK	@ set ABT mode stack pointer
+
+orr	r1, r0, #UND_MODE
+msr	cpsr_c, r1	@ switch to UND mode
+ldr	sp, =UND_STACK	@ set UND mode stack pointer
 
 orr	r1, r0, #SVC_MODE
 msr	cpsr_c, r1	@ switch to SVC mode
