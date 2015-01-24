@@ -32,17 +32,20 @@
  */
 
 @ ARM CPSR register fields
-.set CPSR_MODE_USR,	0x10	/* user mode mask */
-.set CPSR_MODE_FIQ,	0x11	/* fiq mode mask */
-.set CPSR_MODE_IRQ,	0x12	/* irq mode mask */
-.set CPSR_MODE_SVC,	0x13	/* supervisor mode mask */
-.set CPSR_MODE_ABT,	0x17	/* abort mode mask */
-.set CPSR_MODE_UND,	0x1B	/* undefined instruction mode mask */
-.set CPSR_MODE_SYS,	0x1F	/* system mode mask */
+.set USR_MODE,	0x10		@ user mode
+.set FIQ_MODE,	0x11		@ fiq mode
+.set IRQ_MODE,	0x12		@ irq mode
+.set SVC_MODE,	0x13		@ supervisor
+.set ABT_MODE,	0x17		@ abort mode
+.set UND_MODE,	0x1B		@ undefined instruction mode
+.set SYS_MODE,	0x1F		@ system mode
 
-.set CPSR_ENABLE_IRQ,	0x80	/* IRQ enable mask */
-.set CPSR_ENABLE_FIQ,	0x40	/* FIQ enable mask */
-.set CPSR_ENABLE_INT,	0xC0	/* all interrupt enable mask */
+.set IRQ_EN,	0x80		@ IRQ enable bit
+.set FIQ_EN,	0x40		@ FIQ enable bit
+
+@ Slice memory layout
+.set SVC_STACK,	0x8000		@ start of system stack
+.set IRQ_STACK, 0x4000		@ start of IRQ handler stack
 
 @ Interrupt vector table
 @
@@ -121,7 +124,12 @@ vec_fiq:
 
 .globl handle_reset
 
-handle_reset:	@ address of first instruction in slice!
+handle_reset:		@ address of first instruction in slice!
+
+@ Disable interrupts
+mrs	r0, cpsr
+orr	r0, r0, #IRQ_EN|FIQ_EN
+msr	cpsr_c, r0
 
 @ Initialize the stack pointer for each processor mode. Notice that we
 @ cannot enter user mode to set the user stack pointer because there would
@@ -130,30 +138,19 @@ handle_reset:	@ address of first instruction in slice!
 @ privileged (allowed to modify the CPSR register) allowing us to return
 @ to supervisor mode. Also notice that we must be careful to keep
 @ interrupts disabled.
-ldr	sp, =0x8000	@ set supervisor mode stack pointer
 
-mov	r0, #(CPSR_MODE_IRQ | CPSR_ENABLE_INT)
-msr	cpsr, r0	@ change to IRQ mode
-ldr	sp, =0x7000	@ set IRQ mode stack pointer
+ldr	sp, =SVC_STACK	@ set supervisor mode stack pointer
 
-mov	r0, #(CPSR_MODE_FIQ | CPSR_ENABLE_INT)
-msr	cpsr, r0	@ change to FIQ mode
-ldr	sp, =0x6000	@ set FIQ mode stack pointer
+mrs	r0, cpsr	@ save cpsr with mode bits cleared in r0
+bic	r0, r0, #SYS_MODE
 
-mov	r0, #(CPSR_MODE_SYS | CPSR_ENABLE_INT)
-msr	cpsr, r0	@ change to system mode
-ldr	sp, =0x5000	@ set user/system mode stack pointer
+orr	r1, r0, #IRQ_MODE
+msr	cpsr_c, r1	@ switch to IRQ mode
 
-mov	r0, #(CPSR_MODE_UND | CPSR_ENABLE_INT)
-msr	cpsr, r0	@ change to undefined instruction mode
-ldr	sp, =0x4000	@ set undefined instruction mode stack pointer
+ldr	sp, =IRQ_STACK	@ set IRQ mode stack pointer
 
-mov	r0, #(CPSR_MODE_ABT | CPSR_ENABLE_INT)
-msr	cpsr, r0	@ change to abort mode
-ldr	sp, =0x3000	@ set abort mode stack pointer
-
-mov	r0, #(CPSR_MODE_SVC | CPSR_ENABLE_INT)
-msr	cpsr, r0	@ return to supervisor mode
+orr	r1, r0, #SVC_MODE
+msr	cpsr_c, r1	@ switch to SVC mode
 
 @ Copy the vector table from .text to its home at 0x0. The following
 @ instructions copy the 16 words starting at the label `vectors' into the
@@ -165,14 +162,6 @@ ldmia	r0!, {r2-r9}	@ load all vectors
 stmia	r1!, {r2-r9}	@ copy all vectors
 ldmia	r0!, {r2-r9}	@ load all handlers
 stmia	r1!, {r2-r9}	@ copy all handlers
-
-@ Allow the ARM core to receive interrupts
-mrs	r0, cpsr			@ read CPSR
-orr	r0, r0, #CPSR_ENABLE_INT	@ set interrupt bits (disable)
-@bic	r0, r0, #CPSR_ENABLE_INT	@ clear interrupt bits (enable)
-msr	cpsr, r0			@ write CPSR
-
-@ Allow the peripherals to generate interrupts
 
 @ Branch to kernel entry
 b	slice_main

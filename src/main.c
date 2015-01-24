@@ -30,26 +30,23 @@ slice_main()
 {
 	int i, ret;
 
+	/* prepare LED pin */
 	gpio_function_select(16, 1);
 
 	/* initialize framebuffer */
 	ret = fb_init();
 	if (ret != 0) {
-		error_solid();
+		error_blink();
 	}
 
 	/* initialize console */
 	console_init();
 	kprintf("Console initialized, welcome to Slice.\n");
 
-	/* test division */
-	kprintf ("div test: %x\n", 0xdeadbeef);
-	kprintf ("div test: %u\n", 0x1000);
-
 	/* initialize SD card */
 	emmc_init();
 
 	kprintf("Done.\n");
 
-	error_blink();
+	error_solid();
 }
