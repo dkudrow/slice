@@ -19,4 +19,4 @@ refs/
 test/*-test
 
 # JetBrains
-idea/
+.idea/
