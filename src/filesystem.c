@@ -13,17 +13,14 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
+#define MODULE FS
+
 #include <emmc.h>
 #include <filesystem.h>
 #include <string.h>
 #include <types.h>
 #include <util.h>
-
-#ifdef DEBUG_FS
-#define PRINT_DEBUG
-#endif
-#define PRINT_HANDLE "FS"
-#include "debug.h"
+#include <log.h>
 
 /*
  * LBA of FAT sector containing cluster

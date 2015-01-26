@@ -13,11 +13,13 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#include <debug.h>
+#define MODULE MAIN
+
 #include <emmc.h>
 #include <framebuffer.h>
 #include <gpio.h>
 #include <led.h>
+#include <log.h>
 #include <timer.h>
 #include <util.h>
 

@@ -23,8 +23,7 @@ ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi
 ARM = $(ARMDIR)/bin/arm-bcm2708-linux-gnueabi
 
 ARMCC = $(ARM)-gcc
-ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles \
-			-DPRINT_WARN -DPRINT_ERROR -DPRINT_DEBUG -DDEBUG_LEVEL=2
+ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles -DLOGGING=WARN
 LIBGCC = $(ARMDIR)/lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/libgcc.a
 
 ARMAS = $(ARM)-as
@@ -56,6 +55,7 @@ COBJ += framebuffer.o
 COBJ += gpio.o
 COBJ += irq.o
 COBJ += led.o
+COBJ += log.o
 COBJ += mailbox.o
 COBJ += main.o
 COBJ += malloc.o

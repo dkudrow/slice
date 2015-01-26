@@ -13,6 +13,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <stdarg.h>
 #include <types.h>
 
 #define SWAP_ORDER_2(h) (((h & 0xFF00) >> 8) | ((h & 0x00FF) << 8))
@@ -33,6 +34,7 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
 
-void kprintf(char *format_str, ...);
+void kvprintf(const char *format_str, va_list arg_list);
+void kprintf(const char *format_str, ...);
 
 #endif /* UTIL_H */

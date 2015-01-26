@@ -13,11 +13,9 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ *
  */
 
-#ifdef DEBUG_IRQ
-#define PRINT_DEBUG
-#endif
-#define PRINT_HANDLE "IRQ"
-#include "debug.h"
+#define MODULE IRQ
+
+#include <log.h>
 
 /*
  * Interrupt controller base adderss and registers
@@ -62,5 +60,5 @@ void irq_handle_interrupt()
 
 	reg = *(unsigned *)(IRQ_PENDING);
 
-	debug_print("IRQ_PENDING: 0x%x\n", reg);
+	log(DEBUG, "IRQ_PENDING: 0x%x", reg);
 }

@@ -45,18 +45,26 @@ static void format_int(int base, unsigned uval)
 	} while (i);
 }
 
-/*
- * Formatted printing for the kernel
- */
 void kprintf(char *format_str, ...)
 {
-	char *s = format_str;
 	va_list arg_list;
-	int arg_int;
-	char *arg_str;
 
 	/* get the format string arguments */
 	va_start(arg_list, format_str);
+
+	kvprintf(format_str, arg_list);
+
+	va_end(arg_list);
+}
+
+/*
+ * Formatted printing for the kernel
+ */
+void kvprintf(char *format_str, va_list arg_list)
+{
+	char *s = format_str;
+	int arg_int;
+	char *arg_str;
 
 	while (*s) {
 		/* print a normal character */
