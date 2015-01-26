@@ -288,7 +288,7 @@ static int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
 	int i = 0;
 
 	/* loop until the masked register equals the condition */
-	while ((*(unsigned *)reg & mask) != cond) {
+	while ((READ4(reg) & mask) != cond) {
 		if (i++ >= timeout)
 			return -1;
 
@@ -310,10 +310,10 @@ static int emmc_host_reset()
 	debug_print(1, "Entered emmc_host_reset().\n");
 
 	/* set the software reset bits */
-	reg = *(unsigned *)(EMMC_CTRL1);
+	reg = READ4(EMMC_CTRL1);
 	reg |= CTRL_RESET_ALL;
 	debug_print(1, "Writing 0x%x to CTRL1 (software reset).\n", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	WRITE4(EMMC_CTRL1, reg);
 
 	/* host will clear the reset bit when it is done */
 	if (emmc_timeout(EMMC_CTRL1, CTRL_RESET_ALL, 0, TIMEOUT) < 0) {
@@ -337,10 +337,10 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	debug_print(1, "Entering emmc_set_clock().\n");
 
 	/* turn off the clock */
-	reg = *(unsigned *)(EMMC_CTRL1);
+	reg = READ4(EMMC_CTRL1);
 	reg &= ~CTRL_CLK_MASK;
 	debug_print(1, "Writing 0x%x to CTRL1 (disable clock).\n", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	WRITE4(EMMC_CTRL1, reg);
 
 	/* approximate the desired clock frequency */
 	if (freq >= base) {
@@ -366,12 +366,12 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	reg |= SHIFT_TIMEOUT(0x7);
 
 	/* write clock parameters to EMMC */
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	WRITE4(EMMC_CTRL1, reg);
 
 	/* enable internal clock */
 	reg |= CTRL_INTCLK_EN;
 	debug_print(1, "Writing 0x%x to CTRL1 (enable internal clock).\n", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	WRITE4(EMMC_CTRL1, reg);
 
 	/* host will set the stable bit when the clock is ready */
 	if (emmc_timeout(EMMC_CTRL1, CTRL_STABLE, CTRL_STABLE, TIMEOUT) < 0) {
@@ -382,10 +382,10 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	debug_print(1, "EMMC clock is stable.\n");
 
 	/* enable clock on the bus */
-	reg = *(unsigned *)(EMMC_CTRL1);
+	reg = READ4(EMMC_CTRL1);
 	reg |= CTRL_CLK_EN;
 	debug_print(1, "Writing 0x%x to CTRL1 (enable bus clock).\n", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	WRITE4(EMMC_CTRL1, reg);
 
 	debug_print(2, "EMMC Clock enabled.\n");
 
@@ -417,18 +417,18 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 
 	/* set the argument */
 	debug_print(1, "Writing 0x%x to ARG1.\n", arg);
-	*(unsigned *)(EMMC_ARG1) = arg;
+	WRITE4(EMMC_ARG1, arg);
 
 	/* prepare and send the command */
 	/**(unsigned *)(EMMC_CMDTM) = cmd & ~CMD_MASK;*/
 	debug_print(1, "Writing 0x%x to CMDTM.\n", cmd);
-	*(unsigned *)(EMMC_CMDTM) = cmd;
+	WRITE4(EMMC_CMDTM, cmd);
 
 	/* wait for command done interrupt */
 	emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE, TIMEOUT);
 
 	/* TODO: error check */
-	reg = *(unsigned *)(EMMC_INTERRUPT);
+	reg = READ4(EMMC_INTERRUPT);
 	if (reg & INT_ERROR) {
 		error_print("Error sending command. INTERRUPT: 0x%x.\n", reg);
 		return -1;
@@ -437,7 +437,7 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 	debug_print(1, "EMMC command sent successfully.\n");
 
 	/* clear command done interrupt */
-	*(unsigned *)(EMMC_INTERRUPT) = INT_CMD_DONE;
+	WRITE4(EMMC_INTERRUPT, INT_CMD_DONE);
 
 	return 0;
 }
@@ -499,16 +499,16 @@ int emmc_init()
 
 	/* do not send interrupts to the ARM core */
 	reg = 0;
-	*(unsigned *)(EMMC_INT_ENBL) = reg;
+	WRITE4(EMMC_INT_ENBL, reg);
 
 	/* clear interrupt status register */
 	reg = 0xFFFFFFFF;
-	*(unsigned *)(EMMC_INTERRUPT) = reg;
+	WRITE4(EMMC_INTERRUPT, reg);
 
 	/* send interrupts to the INTERRUPT register */
 	reg = INT_MASK_ALL;
 	debug_print(1, "Writing 0x%x to INT_MASK (enable interrupt flags).\n", reg);
-	*(unsigned *)(EMMC_INT_MASK) = reg;
+	WRITE4(EMMC_INT_MASK, reg);
 
 	/* reset card with */
 	arg = 0;
@@ -525,7 +525,7 @@ int emmc_init()
 		return -1;
 
 	/* check whether card can run on host's supply voltage */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	if (!(resp & 0x100)) {
 		error_print("Card voltage not supported. RESP0: 0x%x.\n", resp);
 		return -1;
@@ -542,7 +542,7 @@ int emmc_init()
 		return -1;
 
 	/* get card capacity from OCR */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	if (resp & OCR_BUSY && resp & OCR_CAPACITY)
 		capacity = 1;
 	else
@@ -558,7 +558,7 @@ int emmc_init()
 		if (emmc_send_app_command(cmd, arg) < 0)
 			return -1;
 		timer_wait(10000);
-		resp = *(unsigned *)(EMMC_RESP0);
+		resp = READ4(EMMC_RESP0);
 	} while (!(resp & OCR_BUSY));
 	debug_print(1, "Card returned 0x%x.\n", resp);
 
@@ -571,7 +571,7 @@ int emmc_init()
 	
 	/* check response to ALL_SEND_CID */
 	/* TODO: store CID? */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	debug_print(1, "Card returned 0x%x.\n", resp);
 
 	/* request card's RCA */
@@ -582,7 +582,7 @@ int emmc_init()
 		return -1;
 	
 	/* retrieve RCA */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	rca = resp & 0xFFFF0000;
 	debug_print(1, "Card returned 0x%x.\n", resp);
 	
@@ -593,7 +593,7 @@ int emmc_init()
 		return -1;
 	
 	/* TODO: check card status */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	debug_print(1, "Card returned 0x%x.\n", resp);
 
 	/* set the block length to 512 bytes (only affects SDSC) */
@@ -604,7 +604,7 @@ int emmc_init()
 		return -1;
 	
 	/* TODO: check response */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	debug_print(1, "Card returned 0x%x.\n", resp);
 
 	/* set the clock to operating frequency */
@@ -625,7 +625,7 @@ int emmc_read_block(unsigned block, void *void_buf)
 	debug_print(1, "Entering emmc_read_block().\n");
 
 	/* set the transfer block size */
-	*(unsigned *)(EMMC_BLKSIZCNT) = BLOCK_SIZE;
+	READ4(EMMC_BLKSIZCNT) = BLOCK_SIZE;
 
 	/* prepare read command with block number as argument */
 	cmd = CMD_SHIFT(READ_SINGLE_BLOCK) | TM_DATDIR | CMD_SHORT | CMD_CRC_CK
@@ -634,7 +634,7 @@ int emmc_read_block(unsigned block, void *void_buf)
 	emmc_send_command(cmd, block);
 
 	/* check response */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	if (resp & R1_ERRORS) {
 		error_print("Error reading from SD card. Bad response: 0x%x.\n", resp);
 		return -1;
@@ -645,11 +645,11 @@ int emmc_read_block(unsigned block, void *void_buf)
 		error_print("Error reading from SD card. Timeout waiting for buffer.\n");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_RD_READY;
+	WRITE4(EMMC_INTERRUPT, INT_RD_READY);
 
 	/* get data from host */
 	for (i=0; i<BLOCK_SIZE; i+=4) {
-		read_word = *(unsigned *)(EMMC_DATA);
+		read_word = READ4(EMMC_DATA);
 		/**buf++ = SWAP_ORDER_4(read_word);*/
 		*buf++ = read_word;
 	}
@@ -659,7 +659,7 @@ int emmc_read_block(unsigned block, void *void_buf)
 		error_print("Error reading from SD card. Timeout waiting transfer.\n");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
+	WRITE4(EMMC_INTERRUPT, INT_DAT_DONE);
 
 	debug_print(1, "Successfully read block 0x%x.\n", block);
 
@@ -676,7 +676,7 @@ int emmc_write_block(unsigned block, unsigned *buf)
 	debug_print(1, "Entering emmc_write_block().\n");
 
 	/* set the transfer block size */
-	*(unsigned *)(EMMC_BLKSIZCNT) = BLOCK_SIZE;
+	WRITE4(EMMC_BLKSIZCNT, BLOCK_SIZE);
 
 	/* prepare write command with block number as argument */
 	cmd = CMD_SHIFT(WRITE_BLOCK) | CMD_SHORT | CMD_CRC_CK
@@ -685,7 +685,7 @@ int emmc_write_block(unsigned block, unsigned *buf)
 	emmc_send_command(cmd, block);
 
 	/* check response */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = READ4(EMMC_RESP0);
 	if (resp & R1_ERRORS) {
 		error_print("Error writing to SD card. Bad response: 0x%x.\n", resp);
 		return -1;
@@ -696,18 +696,18 @@ int emmc_write_block(unsigned block, unsigned *buf)
 		error_print("Error writing to SD card. Timeout waiting for buffer.\n");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_WR_READY;
+	WRITE4(EMMC_INTERRUPT, INT_WR_READY);
 
 	/* get data from host */
 	for (i=0; i<BLOCK_SIZE; i+=4)
-		*(unsigned *)(EMMC_DATA) = *buf++;
+		WRITE4(EMMC_DATA, *buf++);
 
 	/* wait for transfer complete interrupt */
 	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
 		error_print("Error reading from SD card. Timeout waiting transfer.\n");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
+	WRITE4(EMMC_INTERRUPT, INT_DAT_DONE);
 
 	debug_print(1, "Successfully wrote to block 0x%x.\n", block);
 
@@ -738,29 +738,29 @@ static void emmc_dump_registers()
 	kprintf("$>~~~~~ EMMC REGISTER DUMP ~~~~~<$\n");
 
 	kprintf("ARG2: %x, BLKSIZCNT: %x, ARG1: %x, CMDTM: %x\n",
-			*(unsigned *)(EMMC_ARG2), *(unsigned *)(EMMC_BLKSIZCNT),
-			*(unsigned *)(EMMC_ARG1), *(unsigned *)(EMMC_CMDTM));
+			READ4(EMMC_ARG2), READ4(EMMC_BLKSIZCNT),
+			READ4(EMMC_ARG1), READ4(EMMC_CMDTM));
 
 	kprintf("RESP0: %x, RESP1: %x, RESP2: %x, RESP3: %x\n",
-			*(unsigned *)(EMMC_RESP0), *(unsigned *)(EMMC_RESP1),
-			*(unsigned *)(EMMC_RESP2), *(unsigned *)(EMMC_RESP3));
+			READ4(EMMC_RESP0), READ4(EMMC_RESP1),
+			READ4(EMMC_RESP2), READ4(EMMC_RESP3));
 
 	kprintf("DATA: %x, STATUS: %x, CTRL0: %x, CTRL1: %x\n",
-			*(unsigned *)(EMMC_DATA), *(unsigned *)(EMMC_STATUS),
-			*(unsigned *)(EMMC_CTRL0), *(unsigned *)(EMMC_CTRL1));
+			READ4(EMMC_DATA), READ4(EMMC_STATUS),
+			READ4(EMMC_CTRL0), READ4(EMMC_CTRL1));
 
 	kprintf("INT_FLAG: %x, INT_MASK: %x, INT_ENBL: %x, CTRL2: %x\n",
-			*(unsigned *)(EMMC_INTERRUPT), *(unsigned *)(EMMC_INT_MASK),
-			*(unsigned *)(EMMC_INT_ENBL), *(unsigned *)(EMMC_CTRL2));
+			READ4(EMMC_INTERRUPT), READ4(EMMC_INT_MASK),
+			READ4(EMMC_INT_ENBL), READ4(EMMC_CTRL2));
 
 	kprintf("FORCE_INT: %x, TIMEOUT: %x, DBG: %x, FIFO_CFG: %x\n",
-			*(unsigned *)(EMMC_FORCE_INT), *(unsigned *)(EMMC_TIMEOUT),
-			*(unsigned *)(EMMC_DBG), *(unsigned *)(EMMC_FIFO_CFG));
+			READ4(EMMC_FORCE_INT), READ4(EMMC_TIMEOUT),
+			READ4(EMMC_DBG), READ4(EMMC_FIFO_CFG));
 
 	kprintf("FIFO_EN: %x, TUNE_STEP: %x, TUNE_STD: %x, TUNE_DDR: %x\n",
-			*(unsigned *)(EMMC_FIFO_EN), *(unsigned *)(EMMC_TUNE_STEP),
-			*(unsigned *)(EMMC_TUNE_STD), *(unsigned *)(EMMC_TUNE_DDR));
+			READ4(EMMC_FIFO_EN), READ4(EMMC_TUNE_STEP),
+			READ4(EMMC_TUNE_STD), READ4(EMMC_TUNE_DDR));
 
 	kprintf("INT_SPI: %x, SLOTISR: %x\n",
-			*(unsigned *)(EMMC_INT_SPI), *(unsigned *)(EMMC_SLOT_VER));
+			READ4(EMMC_INT_SPI), READ4(EMMC_SLOT_VER));
 }
