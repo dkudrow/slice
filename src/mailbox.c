@@ -49,19 +49,13 @@
 
 #include <errno.h>
 #include <mailbox.h>
+#include <platform.h>
 #include <util.h>
 
-/*
- * Mailbox base address and register offsets
- */
-#define MBOX_BASE		0x2000B880
-#define	MBOX_READ		0x0
-#define MBOX_POLL		0x10
-#define MBOX_SEND		0x14
-#define MBOX_STATUS		0x18
-#define MBOX_CONF		0x1C
-#define	MBOX_WRITE		0x20
+static volatile mailbox_reg_t *mailbox = MBOX_BASE;
 
+#define WRITE_READY (1 << 31)
+#define READ_READY (1 << 30)
 
 /*
  * Write a message to the VideoCore mailbox
@@ -81,11 +75,13 @@ int mailbox_write(int channel, uint32_t message)
 	reg = (message & ~0xF) | (channel & 0xF);
 
 	/* wait for the status register to clear for writing */
-	while (READ4(MBOX_BASE + MBOX_STATUS) & (1 << 31))
+	/*while (READ4(MBOX_STATUS) & WRITE_READY)*/
+	while (mailbox->status & WRITE_READY)
 		;
 
 	/* write message to mailbox */
-	WRITE4(MBOX_BASE + MBOX_WRITE, reg);
+	/*WRITE4(MBOX_WRITE, reg);*/
+	mailbox->write = reg;
 
 	return 0;
 }
@@ -105,11 +101,13 @@ int mailbox_read(int channel, uint32_t *message)
 	/* loop until we are on the right channel */
 	do {
 		/* wait for the status register to clear for reading */
-		while (READ4(MBOX_BASE + MBOX_STATUS) & (1 << 30))
+		/*while (READ4(MBOX_STATUS) & READ_READY)*/
+		while (mailbox->status & READ_READY)
 			;
 
 		/* read message to mailbox */
-		reg = READ4(MBOX_BASE + MBOX_READ);
+		/*reg = READ4(MBOX_READ);*/
+		reg = mailbox->read;
 	} while (channel != (reg & 0xF));
 
 	/* save message */

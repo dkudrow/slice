@@ -43,52 +43,19 @@
 #define MODULE EMMC
 
 #include <mailbox.h>
+#include <platform.h>
 #include <timer.h>
 #include <util.h>
 #include <log.h>
 
+
+static volatile emmc_reg_t *emmc = EMMC_BASE;
 
 #define IDENT_FREQ	400000		/* clock frequency during initialization */
 #define OPER_FREQ	20000000	/* clock frequency during normal operation */
 #define BLOCK_SIZE	512			/* block size in bytes */
 #define TIMEOUT		100			/* default timeout in ms */
  
-/*
- * EMMC base address and registers
- *
- * Although the SDHCI specification defines half-word registers, the
- * BCM2835 can only access word sized registers. This why some registers
- * defined below seem to handle two unrelated tasks. Also bitmasks are fun!
- */
-#define EMMC_BASE		0x20300000
-
-#define EMMC_ARG2		EMMC_BASE+0x0
-#define EMMC_BLKSIZCNT	EMMC_BASE+0x4	/* block size and count for transfer */
-#define EMMC_ARG1		EMMC_BASE+0x8	/* command argument */
-#define EMMC_CMDTM		EMMC_BASE+0xC	/* command and transfer mode */
-#define EMMC_RESP0		EMMC_BASE+0x10	/* first word of response */
-#define EMMC_RESP1		EMMC_BASE+0x14	/* second word of response */
-#define EMMC_RESP2		EMMC_BASE+0x18	/* third word of response */
-#define EMMC_RESP3		EMMC_BASE+0x1C	/* fourth word of response */
-#define EMMC_DATA		EMMC_BASE+0x20	/* next word of EMMC buffer */
-#define EMMC_STATUS		EMMC_BASE+0x24	/* current status of the EMMC */
-#define EMMC_CTRL0		EMMC_BASE+0x28	/* DAT line and boot mode control */
-#define EMMC_CTRL1		EMMC_BASE+0x2C	/* clock and reset controls for EMMC */
-#define EMMC_INTERRUPT	EMMC_BASE+0x30	/* status of EMMC interrupts */
-#define EMMC_INT_MASK	EMMC_BASE+0x34	/* event signals INTERRUPT register */
-#define EMMC_INT_ENBL	EMMC_BASE+0x38	/* event signals ARM IRQ vector */
-#define EMMC_CTRL2		EMMC_BASE+0x3C
-#define EMMC_FORCE_INT	EMMC_BASE+0x50
-#define EMMC_TIMEOUT	EMMC_BASE+0x70
-#define EMMC_DBG		EMMC_BASE+0x74
-#define EMMC_FIFO_CFG	EMMC_BASE+0x80
-#define EMMC_FIFO_EN	EMMC_BASE+0x84
-#define EMMC_TUNE_STEP	EMMC_BASE+0x88
-#define EMMC_TUNE_STD	EMMC_BASE+0x8C
-#define EMMC_TUNE_DDR	EMMC_BASE+0x90
-#define EMMC_INT_SPI	EMMC_BASE+0xF0
-#define EMMC_SLOT_VER	EMMC_BASE+0xFC	/* slot status and version info */
-
 /*
  * MMC/SD commands (defined by MMCA 4.4 and SDHCI 3.0)
  */
@@ -277,12 +244,12 @@ static unsigned emmc_get_clock_rate()
 /*
  * busy wait with timeout (in ms)
  */
-static int emmc_timeout(unsigned reg, unsigned mask, unsigned cond, int timeout)
+static int emmc_timeout(volatile uint32_t *reg, unsigned mask, unsigned cond, int timeout)
 {
 	int i = 0;
 
 	/* loop until the masked register equals the condition */
-	while ((*(unsigned *)reg & mask) != cond) {
+	while ((*reg & mask) != cond) {
 		if (i++ >= timeout)
 			return -1;
 
@@ -302,13 +269,11 @@ static int emmc_host_reset()
 	int i = 0;
 
 	/* set the software reset bits */
-	reg = *(unsigned *)(EMMC_CTRL1);
-	reg |= CTRL_RESET_ALL;
 	log(DEBUG, "writing 0x%x to CTRL1 (software reset)", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	emmc->ctrl_1 |= CTRL_RESET_ALL;
 
 	/* host will clear the reset bit when it is done */
-	if (emmc_timeout(EMMC_CTRL1, CTRL_RESET_ALL, 0, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->ctrl_1, CTRL_RESET_ALL, 0, TIMEOUT) < 0) {
 		log(ERROR, "reset timed out");
 		return -1;
 	}
@@ -327,10 +292,10 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	int i = 0;
 
 	/* turn off the clock */
-	reg = *(unsigned *)(EMMC_CTRL1);
+	reg = emmc->ctrl_1;
 	reg &= ~CTRL_CLK_MASK;
 	log(DEBUG, "writing 0x%x to CTRL1 (disable clock)", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	emmc->ctrl_1 = reg;
 
 	/* approximate the desired clock frequency */
 	if (freq >= base) {
@@ -356,15 +321,15 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	reg |= SHIFT_TIMEOUT(0x7);
 
 	/* write clock parameters to EMMC */
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	emmc->ctrl_1 = reg;
 
 	/* enable internal clock */
 	reg |= CTRL_INTCLK_EN;
 	log(DEBUG, "writing 0x%x to CTRL1 (enable internal clock)", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	emmc->ctrl_1 = reg;
 
 	/* host will set the stable bit when the clock is ready */
-	if (emmc_timeout(EMMC_CTRL1, CTRL_STABLE, CTRL_STABLE, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->ctrl_1, CTRL_STABLE, CTRL_STABLE, TIMEOUT) < 0) {
 		log(ERROR, "clock did not stabilize");
 		return -1;
 	}
@@ -372,10 +337,8 @@ static int emmc_set_clock(unsigned base, unsigned freq)
 	log(DEBUG, "clock is stable");
 
 	/* enable clock on the bus */
-	reg = *(unsigned *)(EMMC_CTRL1);
-	reg |= CTRL_CLK_EN;
 	log(DEBUG, "writing 0x%x to CTRL1 (enable bus clock)", reg);
-	*(unsigned *)(EMMC_CTRL1) = reg;
+	emmc->ctrl_1 |= CTRL_CLK_EN;
 
 	log(INFO, "clock enabled");
 
@@ -390,7 +353,7 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 	unsigned reg;
 
 	/* wait for CMD line */
-	if (emmc_timeout(EMMC_STATUS, ST_CMD_BUSY, 0, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->status, ST_CMD_BUSY, 0, TIMEOUT) < 0) {
 		log(ERROR, "timed out waiting for CMD line");
 		return -1;
 	}
@@ -398,25 +361,25 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 	/* TODO: handle busy and abort commands */
 
 	/* wait for DAT line */
-	if (emmc_timeout(EMMC_STATUS, ST_DAT_BUSY, 0, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->status, ST_DAT_BUSY, 0, TIMEOUT) < 0) {
 		log(ERROR, "timed out waiting for DAT line");
 		return -1;
 	}
 
 	/* set the argument */
 	log(DEBUG, "writing 0x%x to ARG1", arg);
-	*(unsigned *)(EMMC_ARG1) = arg;
+	emmc->arg_1 = arg;
 
 	/* prepare and send the command */
+	/**(unsigned *)(EMMC_CMDTM) = cmd & ~CMD_MASK;*/
 	log(DEBUG, "writing 0x%x to CMDTM", cmd);
-	*(unsigned *)(EMMC_CMDTM) = cmd;
+	emmc->cmd_tm = cmd;
 
 	/* wait for command done interrupt */
-	emmc_timeout(EMMC_INTERRUPT, INT_CMD_DONE, INT_CMD_DONE, TIMEOUT);
+	emmc_timeout(&emmc->interrupt, INT_CMD_DONE, INT_CMD_DONE, TIMEOUT);
 
 	/* TODO: error check */
-	reg = *(unsigned *)(EMMC_INTERRUPT);
-	if (reg & INT_ERROR) {
+	if (emmc->interrupt & INT_ERROR) {
 		log(ERROR, "error sending command. INTERRUPT: 0x%x", reg);
 		return -1;
 	}
@@ -424,7 +387,7 @@ static int emmc_send_command(unsigned cmd, unsigned arg)
 	log(DEBUG, "command sent successfully");
 
 	/* clear command done interrupt */
-	*(unsigned *)(EMMC_INTERRUPT) = INT_CMD_DONE;
+	emmc->interrupt = INT_CMD_DONE;
 
 	return 0;
 }
@@ -471,7 +434,7 @@ int emmc_init()
 	emmc_host_reset();
 
 	/* check whether a card is present */
-	if (emmc_timeout(EMMC_STATUS, ST_CARD_INS, ST_CARD_INS, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->status, ST_CARD_INS, ST_CARD_INS, TIMEOUT) < 0) {
 		log(ERROR, "did not detect SD card");
 		return -1;
 	}
@@ -481,17 +444,14 @@ int emmc_init()
 	emmc_set_clock(base_freq, IDENT_FREQ);
 
 	/* do not send interrupts to the ARM core */
-	reg = 0;
-	*(unsigned *)(EMMC_INT_ENBL) = reg;
+	emmc->int_enbl = 0;
 
 	/* clear interrupt status register */
-	reg = 0xFFFFFFFF;
-	*(unsigned *)(EMMC_INTERRUPT) = reg;
+	emmc->interrupt = 0xFFFFFFFF;
 
 	/* send interrupts to the INTERRUPT register */
-	reg = INT_MASK_ALL;
 	log(DEBUG, "writing 0x%x to INT_MASK (enable interrupt flags)", reg);
-	*(unsigned *)(EMMC_INT_MASK) = reg;
+	emmc->int_mask = INT_MASK_ALL;
 
 	/* reset card with */
 	arg = 0;
@@ -508,7 +468,7 @@ int emmc_init()
 		return -1;
 
 	/* check whether card can run on host's supply voltage */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	if (!(resp & 0x100)) {
 		log(ERROR, "card voltage not supported. RESP0: 0x%x", resp);
 		return -1;
@@ -525,7 +485,7 @@ int emmc_init()
 		return -1;
 
 	/* get card capacity from OCR */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	if (resp & OCR_BUSY && resp & OCR_CAPACITY)
 		capacity = 1;
 	else
@@ -541,7 +501,7 @@ int emmc_init()
 		if (emmc_send_app_command(cmd, arg) < 0)
 			return -1;
 		timer_wait(10000);
-		resp = *(unsigned *)(EMMC_RESP0);
+		resp = emmc->resp_0;
 	} while (!(resp & OCR_BUSY));
 	log(DEBUG, "card returned 0x%x", resp);
 
@@ -554,7 +514,7 @@ int emmc_init()
 	
 	/* check response to ALL_SEND_CID */
 	/* TODO: store CID? */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	log(DEBUG, "card returned 0x%x", resp);
 
 	/* request card's RCA */
@@ -565,7 +525,7 @@ int emmc_init()
 		return -1;
 	
 	/* retrieve RCA */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	rca = resp & 0xFFFF0000;
 	log(DEBUG, "card returned 0x%x", resp);
 	
@@ -576,7 +536,7 @@ int emmc_init()
 		return -1;
 	
 	/* TODO: check card status */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	log(DEBUG, "card returned 0x%x", resp);
 
 	/* set the block length to 512 bytes (only affects SDSC) */
@@ -587,7 +547,7 @@ int emmc_init()
 		return -1;
 	
 	/* TODO: check response */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	log(DEBUG, "card returned 0x%x", resp);
 
 	/* set the clock to operating frequency */
@@ -602,11 +562,11 @@ int emmc_init()
  */
 int emmc_read_block(unsigned block, void *void_buf)
 {
-	unsigned cmd, resp, read_word, i;
+	unsigned cmd, resp, i;
 	unsigned *buf = (unsigned *)void_buf;
 
 	/* set the transfer block size */
-	*(unsigned *)(EMMC_BLKSIZCNT) = BLOCK_SIZE;
+	emmc->blksizcnt = BLOCK_SIZE; /* FIXME ??? */
 
 	/* prepare read command with block number as argument */
 	cmd = CMD_SHIFT(READ_SINGLE_BLOCK) | TM_DATDIR | CMD_SHORT | CMD_CRC_CK
@@ -615,32 +575,29 @@ int emmc_read_block(unsigned block, void *void_buf)
 	emmc_send_command(cmd, block);
 
 	/* check response */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	if (resp & R1_ERRORS) {
 		log(ERROR, "error reading from SD card - bad response: 0x%x", resp);
 		return -1;
 	}
 
 	/* wait for read ready interrupt */
-	if (emmc_timeout(EMMC_INTERRUPT, INT_RD_READY, INT_RD_READY, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->interrupt, INT_RD_READY, INT_RD_READY, TIMEOUT) < 0) {
 		log(ERROR, "error reading from SD card - timeout waiting for buffer");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_RD_READY;
+	emmc->interrupt = INT_RD_READY;
 
 	/* get data from host */
-	for (i=0; i<BLOCK_SIZE; i+=4) {
-		read_word = *(unsigned *)(EMMC_DATA);
-		/**buf++ = SWAP_ORDER_4(read_word);*/
-		*buf++ = read_word;
-	}
+	for (i=0; i<BLOCK_SIZE; i+=4)
+		*buf++ = emmc->data;
 
 	/* wait for transfer complete interrupt */
-	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->interrupt, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
 		log(ERROR, "error reading from SD card - timeout waiting transfer");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
+	emmc->interrupt = INT_DAT_DONE;
 
 	log(DEBUG, "successfully read block 0x%x", block);
 
@@ -657,7 +614,7 @@ int emmc_write_block(unsigned block, unsigned *buf)
 	log(DEBUG, "entering emmc_write_block()");
 
 	/* set the transfer block size */
-	*(unsigned *)(EMMC_BLKSIZCNT) = BLOCK_SIZE;
+	emmc->blksizcnt = BLOCK_SIZE;
 
 	/* prepare write command with block number as argument */
 	cmd = CMD_SHIFT(WRITE_BLOCK) | CMD_SHORT | CMD_CRC_CK
@@ -666,29 +623,29 @@ int emmc_write_block(unsigned block, unsigned *buf)
 	emmc_send_command(cmd, block);
 
 	/* check response */
-	resp = *(unsigned *)(EMMC_RESP0);
+	resp = emmc->resp_0;
 	if (resp & R1_ERRORS) {
 		log(ERROR, "error writing to SD card - bad response: 0x%x", resp);
 		return -1;
 	}
 
 	/* wait for write ready interrupt */
-	if (emmc_timeout(EMMC_INTERRUPT, INT_WR_READY, INT_WR_READY, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->interrupt, INT_WR_READY, INT_WR_READY, TIMEOUT) < 0) {
 		log(ERROR, "error writing to SD card - timeout waiting for buffer");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_WR_READY;
+	emmc->interrupt = INT_WR_READY;
 
 	/* get data from host */
 	for (i=0; i<BLOCK_SIZE; i+=4)
-		*(unsigned *)(EMMC_DATA) = *buf++;
+		emmc->data = *buf++;
 
 	/* wait for transfer complete interrupt */
-	if (emmc_timeout(EMMC_INTERRUPT, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
+	if (emmc_timeout(&emmc->interrupt, INT_DAT_DONE, INT_DAT_DONE, TIMEOUT) < 0) {
 		log(ERROR, "error reading from SD card - timeout waiting transfer");
 		return -1;
 	}
-	*(unsigned *)(EMMC_INTERRUPT) = INT_DAT_DONE;
+	emmc->interrupt = INT_DAT_DONE;
 
 	log(DEBUG, "successfully wrote to block 0x%x", block);
 
@@ -719,29 +676,18 @@ static void emmc_dump_registers()
 	kprintf("$>~~~~~ EMMC REGISTER DUMP ~~~~~<$\n");
 
 	kprintf("ARG2: %x, BLKSIZCNT: %x, ARG1: %x, CMDTM: %x\n",
-			*(unsigned *)(EMMC_ARG2), *(unsigned *)(EMMC_BLKSIZCNT),
-			*(unsigned *)(EMMC_ARG1), *(unsigned *)(EMMC_CMDTM));
+			emmc->arg_2, emmc->blksizcnt,
+			emmc->arg_1, emmc->cmd_tm);
 
 	kprintf("RESP0: %x, RESP1: %x, RESP2: %x, RESP3: %x\n",
-			*(unsigned *)(EMMC_RESP0), *(unsigned *)(EMMC_RESP1),
-			*(unsigned *)(EMMC_RESP2), *(unsigned *)(EMMC_RESP3));
+			emmc->resp_0, emmc->resp_1,
+			emmc->resp_2, emmc->resp_3);
 
 	kprintf("DATA: %x, STATUS: %x, CTRL0: %x, CTRL1: %x\n",
-			*(unsigned *)(EMMC_DATA), *(unsigned *)(EMMC_STATUS),
-			*(unsigned *)(EMMC_CTRL0), *(unsigned *)(EMMC_CTRL1));
+			emmc->data, emmc->status,
+			emmc->ctrl_0, emmc->ctrl_1);
 
-	kprintf("INT_FLAG: %x, INT_MASK: %x, INT_ENBL: %x, CTRL2: %x\n",
-			*(unsigned *)(EMMC_INTERRUPT), *(unsigned *)(EMMC_INT_MASK),
-			*(unsigned *)(EMMC_INT_ENBL), *(unsigned *)(EMMC_CTRL2));
-
-	kprintf("FORCE_INT: %x, TIMEOUT: %x, DBG: %x, FIFO_CFG: %x\n",
-			*(unsigned *)(EMMC_FORCE_INT), *(unsigned *)(EMMC_TIMEOUT),
-			*(unsigned *)(EMMC_DBG), *(unsigned *)(EMMC_FIFO_CFG));
-
-	kprintf("FIFO_EN: %x, TUNE_STEP: %x, TUNE_STD: %x, TUNE_DDR: %x\n",
-			*(unsigned *)(EMMC_FIFO_EN), *(unsigned *)(EMMC_TUNE_STEP),
-			*(unsigned *)(EMMC_TUNE_STD), *(unsigned *)(EMMC_TUNE_DDR));
-
-	kprintf("INT_SPI: %x, SLOTISR: %x\n",
-			*(unsigned *)(EMMC_INT_SPI), *(unsigned *)(EMMC_SLOT_VER));
+	kprintf("INT_FLAG: %x, INT_MASK: %x, INT_ENBL: %x\n",
+			emmc->interrupt, emmc->int_mask,
+			emmc->int_enbl);
 }
