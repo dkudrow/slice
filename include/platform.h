@@ -1,7 +1,7 @@
 /* include/platform.h -- TODO */
 
-#ifndef INCLUDE/PLATFORM_H
-#define INCLUDE/PLATFORM_H
+#ifndef PLATFORM_H
+#define PLATFORM_H
 
 /* BCM2835 memory mapped peripherals */
 #define PERIPHERAL_BASE		0x20000000
@@ -65,5 +65,5 @@
 #define EMMC_INT_SPI	EMMC_BASE + 0xF0
 #define EMMC_SLOT_VER	EMMC_BASE + 0xFC	/* slot status and version info */
 
-#endif /* INCLUDE/PLATFORM_H */
+#endif /* PLATFORM_H */
 
