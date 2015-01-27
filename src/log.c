@@ -40,7 +40,7 @@ void _log(log_level_t level, const char *module, const char *format_str, ...)
 		default:
 			log_print("[?] ");
 	}
-	log_print("%s:", module);
+	log_print("%s: ", module);
 	log_vprint(format_str, arg_list);
 	log_print("\n");
 

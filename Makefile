@@ -23,7 +23,7 @@ ARMDIR = /opt/raspberrypi/tools/arm-bcm2708/arm-bcm2708-linux-gnueabi
 ARM = $(ARMDIR)/bin/arm-bcm2708-linux-gnueabi
 
 ARMCC = $(ARM)-gcc
-ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles -DLOGGING=WARN
+ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles -DLOGGING=INFO
 LIBGCC = $(ARMDIR)/lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/libgcc.a
 
 ARMAS = $(ARM)-as

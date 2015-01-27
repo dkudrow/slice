@@ -15,19 +15,21 @@
 
 typedef enum { DEBUG=0, INFO=1, WARN=2, ERROR=3, QUIET=4 } log_level_t;
 
-#define STRINGIFY(s) #s
-
-#ifndef MODULE
-#define MODULE ?
+#ifndef LOGGING
+#define LOGGING QUIET
 #endif
 
-#ifdef LOGGING
+#ifndef MODULE
+#define MODULE ???
+#endif
+
+#define ADD_QUOTE(macro) #macro
+#define TO_STRING(macro) ADD_QUOTE(macro)
+
+#define MODULE_NAME TO_STRING(MODULE)
+
 #define log(level, ...)						\
 {								\
 	if (level >= LOGGING)					\
-		_log(level, STRINGIFY(MODULE), __VA_ARGS__);	\
+		_log(level, MODULE_NAME, __VA_ARGS__);		\
 }
-#else
-#define log(...)
-#endif
-
