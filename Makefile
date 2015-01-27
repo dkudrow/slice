@@ -50,23 +50,19 @@ TARGETS = $(IMAGE) $(LIST) $(ELF) $(MAP)
 
 COBJ :=
 COBJ += console.o
-COBJ += emmc2.o
-#COBJ += emmc.o
+COBJ += emmc.o
 #COBJ += filesystem.o
 COBJ += framebuffer.o
-COBJ += gpio2.o
-#COBJ += gpio.o
+COBJ += gpio.o
 COBJ += irq.o
 COBJ += led.o
-COBJ += mailbox2.o
-#COBJ += mailbox.o
+COBJ += mailbox.o
 COBJ += main.o
 COBJ += malloc.o
 COBJ += kprintf.o
 COBJ += rbtree.o
 COBJ += string.o
-COBJ += timer2.o
-#COBJ += timer.o
+COBJ += timer.o
 COBJ := $(addprefix $(BUILD)/, $(COBJ))
 
 ASMOBJ := 

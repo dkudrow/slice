@@ -38,13 +38,16 @@
 #include <platform.h>
 #include <util.h>
 
+static volatile timer_reg_t *timer = TIMER_BASE;
+
 /*
  * get the current count
  */
 unsigned timer_read()
 {
 	/* read the low 32 bits from the system clock register */
-	return READ4(TIMER_CNTLO);
+	/*return READ4(TIMER_CNTLO);*/
+	return timer->count_lo;
 }
 
 /*
@@ -55,10 +58,12 @@ void timer_wait(unsigned ticks)
 	unsigned start, current;
 
 	/* get the start count */
-	start = READ4(TIMER_CNTLO);
+	/*start = READ4(TIMER_CNTLO);*/
+	start = timer->count_lo;
 
 	/* wait the specified number of ticks */
 	do {
-		current = READ4(TIMER_CNTLO);
+		/*current = READ4(TIMER_CNTLO);*/
+		current = timer->count_lo;
 	} while (current - start < ticks);
 }

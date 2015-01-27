@@ -3,67 +3,69 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#include <types.h>
+
 /* BCM2835 memory mapped peripherals */
 #define PERIPHERAL_BASE		0x20000000
 
 /* Timer */
+
 #define TIMER_BASE		PERIPHERAL_BASE + 0x3000
 
-#define TIMER_CTRL		TIMER_BASE + 0x0
-#define TIMER_CNTLO		TIMER_BASE + 0x4
-#define TIMER_CNTHI		TIMER_BASE + 0x8
-#define TIMER_CMP0		TIMER_BASE + 0xC
-#define TIMER_CMP1		TIMER_BASE + 0x10
-#define TIMER_CMP2		TIMER_BASE + 0x14
-#define TIMER_CMP3		TIMER_BASE + 0x18
-
+typedef struct __attribute__ ((packed)) {
+	uint32_t status;	/* 0x00 */
+	uint32_t count_lo;	/* 0x04 */
+	uint32_t count_hi;	/* 0x08 */
+	uint32_t cmp_0;		/* 0x0C */
+	uint32_t cmp_1;		/* 0x10 */
+	uint32_t cmp_2;		/* 0x14 */
+	uint32_t cmp_3;		/* 0x18 */
+} timer_reg_t;
 
 /* VideoCore mailbox */
 #define MBOX_BASE		PERIPHERAL_BASE + 0xB880
 
-#define	MBOX_READ		MBOX_BASE + 0x0
-#define MBOX_POLL		MBOX_BASE + 0x10
-#define MBOX_SEND		MBOX_BASE + 0x14
-#define MBOX_STATUS		MBOX_BASE + 0x18
-#define MBOX_CONF		MBOX_BASE + 0x1C
-#define	MBOX_WRITE		MBOX_BASE + 0x20
+typedef struct __attribute__((packed)) {
+	uint32_t read;		/* 0x00 */
+	uint32_t PAD[3];
+	uint32_t poll;		/* 0x10 */
+	uint32_t send;		/* 0x14 */
+	uint32_t status;	/* 0x18 */
+	uint32_t config;	/* 0x1C */
+	uint32_t write;	/* 0x20 */
+} mailbox_reg_t;
 
 /* General purpose I/O controller */
 #define GPIO_BASE		PERIPHERAL_BASE + 0x200000
 
-#define GPIO_FSEL		GPIO_BASE + 0x0
-#define GPIO_SET		GPIO_BASE + 0x1C
-#define GPIO_CLR		GPIO_BASE + 0x28
+typedef struct __attribute__((packed)) {
+	uint32_t func_select[6];	/* 0x00 */
+	uint32_t PAD1;
+	uint32_t set[2];		/* 0x1C */
+	uint32_t PAD2;
+	uint32_t clear[2];		/* 0x28 */
+} gpio_reg_t;
 
 /* External mass media controller */
 #define EMMC_BASE		PERIPHERAL_BASE + 0x300000
 
-#define EMMC_ARG2	EMMC_BASE + 0x0
-#define EMMC_BLKSIZCNT	EMMC_BASE + 0x4		/* block size and count for transfer */
-#define EMMC_ARG1	EMMC_BASE + 0x8		/* command argument */
-#define EMMC_CMDTM	EMMC_BASE + 0xC		/* command and transfer mode */
-#define EMMC_RESP0	EMMC_BASE + 0x10	/* first word of response */
-#define EMMC_RESP1	EMMC_BASE + 0x14	/* second word of response */
-#define EMMC_RESP2	EMMC_BASE + 0x18	/* third word of response */
-#define EMMC_RESP3	EMMC_BASE + 0x1C	/* fourth word of response */
-#define EMMC_DATA	EMMC_BASE + 0x20	/* next word of EMMC buffer */
-#define EMMC_STATUS	EMMC_BASE + 0x24	/* current status of the EMMC */
-#define EMMC_CTRL0	EMMC_BASE + 0x28	/* DAT line and boot mode control */
-#define EMMC_CTRL1	EMMC_BASE + 0x2C	/* clock and reset controls for EMMC */
-#define EMMC_INTERRUPT	EMMC_BASE + 0x30	/* status of EMMC interrupts */
-#define EMMC_INT_MASK	EMMC_BASE + 0x34	/* event signals INTERRUPT register */
-#define EMMC_INT_ENBL	EMMC_BASE + 0x38	/* event signals ARM IRQ vector */
-#define EMMC_CTRL2	EMMC_BASE + 0x3C
-#define EMMC_FORCE_INT	EMMC_BASE + 0x50
-#define EMMC_TIMEOUT	EMMC_BASE + 0x70
-#define EMMC_DBG	EMMC_BASE + 0x74
-#define EMMC_FIFO_CFG	EMMC_BASE + 0x80
-#define EMMC_FIFO_EN	EMMC_BASE + 0x84
-#define EMMC_TUNE_STEP	EMMC_BASE + 0x88
-#define EMMC_TUNE_STD	EMMC_BASE + 0x8C
-#define EMMC_TUNE_DDR	EMMC_BASE + 0x90
-#define EMMC_INT_SPI	EMMC_BASE + 0xF0
-#define EMMC_SLOT_VER	EMMC_BASE + 0xFC	/* slot status and version info */
+typedef struct __attribute__((packed)) {
+	uint32_t arg_2;		/* 0x00 */
+	uint32_t blksizcnt;	/* 0x04 - transfer block size, count */
+	uint32_t arg_1;		/* 0x08 - command argument */
+	uint32_t cmd_tm;	/* 0x0C - command and transfer mode */
+	uint32_t resp_0;	/* 0x10 - first word of response */
+	uint32_t resp_1;	/* 0x14 - second word of response */
+	uint32_t resp_2;	/* 0x18 - third word of response */
+	uint32_t resp_3;	/* 0x1C - fourth word of response */
+	uint32_t data;		/* 0x20 - next word of EMMC buffer */
+	uint32_t status;	/* 0x24 - current status of the EMMC */
+	uint32_t ctrl_0;	/* 0x28 - DAT line, boot mode control */
+	uint32_t ctrl_1;	/* 0x2C - EMMC clock, reset control */
+	uint32_t interrupt;	/* 0x30 - status of EMMC interrupts */
+	uint32_t int_mask;	/* 0x34 - event signals INTERRUPT */
+	uint32_t int_enbl;	/* 0x38 - event signals ARM IRQ */
+} emmc_reg_t;
 
 #endif /* PLATFORM_H */
 

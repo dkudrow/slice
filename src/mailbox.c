@@ -52,6 +52,8 @@
 #include <platform.h>
 #include <util.h>
 
+static volatile mailbox_reg_t *mailbox = MBOX_BASE;
+
 #define WRITE_READY (1 << 31)
 #define READ_READY (1 << 30)
 
@@ -73,11 +75,13 @@ int mailbox_write(int channel, uint32_t message)
 	reg = (message & ~0xF) | (channel & 0xF);
 
 	/* wait for the status register to clear for writing */
-	while (READ4(MBOX_STATUS) & WRITE_READY)
+	/*while (READ4(MBOX_STATUS) & WRITE_READY)*/
+	while (mailbox->status & WRITE_READY)
 		;
 
 	/* write message to mailbox */
-	WRITE4(MBOX_WRITE, reg);
+	/*WRITE4(MBOX_WRITE, reg);*/
+	mailbox->write = reg;
 
 	return 0;
 }
@@ -97,11 +101,13 @@ int mailbox_read(int channel, uint32_t *message)
 	/* loop until we are on the right channel */
 	do {
 		/* wait for the status register to clear for reading */
-		while (READ4(MBOX_STATUS) & READ_READY)
+		/*while (READ4(MBOX_STATUS) & READ_READY)*/
+		while (mailbox->status & READ_READY)
 			;
 
 		/* read message to mailbox */
-		reg = READ4(MBOX_READ);
+		/*reg = READ4(MBOX_READ);*/
+		reg = mailbox->read;
 	} while (channel != (reg & 0xF));
 
 	/* save message */
