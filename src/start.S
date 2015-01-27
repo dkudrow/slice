@@ -177,6 +177,11 @@ stmia	r1!, {r2-r9}	@ copy all vectors
 ldmia	r0!, {r2-r9}	@ load all handlers
 stmia	r1!, {r2-r9}	@ copy all handlers
 
+@ Enable interrupts
+mrs	r0, cpsr
+bic	r0, #IRQ_EN
+msr	cpsr, r0
+
 @ Branch to kernel entry
 b	slice_main
 
@@ -195,41 +200,51 @@ b	slice_main
 .globl handle_undefined
 
 handle_undefined:
-b	hang$
+stmfd	sp!, {r0-r3, lr}	@ save context
+bl	service_undefined	@ branch to service routine
+ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
 .globl handle_software_int
 
 handle_software_int:
-b	hang$
+stmfd	sp!, {r0-r3, lr}	@ save context
+bl	service_software_int	@ branch to service routine
+ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
 .globl handle_prefetch_abort
 
 handle_prefetch_abort:
-b	hang$
+sub	lr, lr, #4		@ adjust link register
+stmfd	sp!, {r0-r3, lr}	@ save context
+bl	service_prefetch_abort	@ branch to service routine
+ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
 .globl handle_data_abort
 
 handle_data_abort:
-b	hang$
+sub	lr, lr, #8		@ adjust link register
+stmfd	sp!, {r0-r3, lr}	@ save context
+bl	service_data_abort	@ branch to service routine
+ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
 .globl handle_unused
 
 handle_unused:
-b	hang$
+mov	pc, lr
 
-@ handle_irq
 .globl handle_irq
 
 handle_irq:
 sub	lr, lr, #4		@ adjust link register
 stmfd	sp!, {r0-r3, lr}	@ save context
-bl	irq_handle_interrupt	@ branch to actual handler
+bl	service_irq		@ branch to service routine
 ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
 .globl handle_fiq
 
 handle_fiq:
-b	hang$
+sub	lr, lr, #4		@ adjust link register
+stmfd	sp!, {r0-r3, lr}	@ save context
+bl	service_fiq		@ branch to service routine
+ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
-hang$:
-b	hang$

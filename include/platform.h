@@ -9,10 +9,9 @@
 #define PERIPHERAL_BASE		0x20000000
 
 /* Timer */
-
 #define TIMER_BASE		PERIPHERAL_BASE + 0x3000
 
-typedef struct __attribute__ ((packed)) {
+typedef struct __attribute__((packed)) {
 	uint32_t status;	/* 0x00 */
 	uint32_t count_lo;	/* 0x04 */
 	uint32_t count_hi;	/* 0x08 */
@@ -21,6 +20,22 @@ typedef struct __attribute__ ((packed)) {
 	uint32_t cmp_2;		/* 0x14 */
 	uint32_t cmp_3;		/* 0x18 */
 } timer_reg_t;
+
+/* Interrupt controller */
+#define IRQ_BASE		PERIPHERAL_BASE + 0xB200
+
+typedef struct __attribute__((packed)) {
+	uint32_t basic_pending;
+	uint32_t pending_1;
+	uint32_t pending_2;
+	uint32_t fiq_ctrl;
+	uint32_t enable_1;
+	uint32_t enable_2;
+	uint32_t basic_enable;
+	uint32_t disable_1;
+	uint32_t disable_2;
+	uint32_t basic_disable;
+} irq_reg_t;
 
 /* VideoCore mailbox */
 #define MBOX_BASE		PERIPHERAL_BASE + 0xB880
