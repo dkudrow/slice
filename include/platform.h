@@ -26,14 +26,11 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
 	uint32_t basic_pending;
-	uint32_t pending_1;
-	uint32_t pending_2;
+	uint32_t pending[2];
 	uint32_t fiq_ctrl;
-	uint32_t enable_1;
-	uint32_t enable_2;
+	uint32_t enable[2];
 	uint32_t basic_enable;
-	uint32_t disable_1;
-	uint32_t disable_2;
+	uint32_t disable[2];
 	uint32_t basic_disable;
 } irq_reg_t;
 
