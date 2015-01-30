@@ -3,10 +3,10 @@
 #ifndef IRQ_H
 #define IRQ_H
 
-typedef void (*irq_handler_t)(void);
+typedef void (*irq_service_routine_t)(void);
 
 void irq_init();
-void irq_register_handler(irq_handler_t handler, int pos);
+void irq_register_service_routine(irq_service_routine_t isr, int pos);
 
 #endif /* IRQ_H */
 

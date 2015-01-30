@@ -69,41 +69,41 @@
 
 .section .text
 
-.globl vectors
+.globl _vectors
 
-vectors:
-ldr	pc, vec_reset		@ 0x00 -- system reset 
-ldr	pc, vec_undefined	@ 0x04 -- undefined instruction
-ldr	pc, vec_software_int	@ 0x08 -- software interrupt
-ldr	pc, vec_prefetch_abort	@ 0x0C -- instruction fetch from bad address
-ldr	pc, vec_data_abort	@ 0x10 -- data fetch from bad address
-ldr	pc, vec_unused		@ 0x14 -- reserved for future use
-ldr	pc, vec_irq		@ 0x18 -- interrupt request
-ldr	pc, vec_fiq		@ 0x1C -- fast interrupt request
+_vectors:
+ldr	pc, _reset_handler		@ 0x00 -- system reset 
+ldr	pc, _undefined_handler		@ 0x04 -- undefined instruction
+ldr	pc, _swi_handler		@ 0x08 -- software interrupt
+ldr	pc, _prefetch_abort_handler	@ 0x0C -- instruction fetch bad address
+ldr	pc, _data_abort_handler		@ 0x10 -- data fetch bad address
+ldr	pc, _empty_handler		@ 0x14 -- reserved for future use
+ldr	pc, _irq_handler		@ 0x18 -- interrupt request
+ldr	pc, _fiq_handler		@ 0x1C -- fast interrupt request
 
-vec_reset:
-.word handle_reset
+_reset_handler:
+.word _handle_reset
 
-vec_undefined:
-.word handle_undefined
+_undefined_handler:
+.word _handle_undefined
 
-vec_software_int:
-.word handle_software_int
+_swi_handler:
+.word _handle_software_int
 
-vec_prefetch_abort:
-.word handle_prefetch_abort
+_prefetch_abort_handler:
+.word _handle_prefetch_abort
 
-vec_data_abort:
-.word handle_data_abort
+_data_abort_handler:
+.word _handle_data_abort
 
-vec_unused:
-.word handle_unused
+_empty_handler:
+.word _handle_unused
 
-vec_irq:
-.word handle_irq
+_irq_handler:
+.word _handle_irq
 
-vec_fiq:
-.word handle_fiq
+_fiq_handler:
+.word _handle_fiq
 
 @ Initialization code
 @
@@ -125,9 +125,9 @@ vec_fiq:
 @	3. Enable interrupts
 @	4. Branch to the kernel main
 
-.globl handle_reset
+.globl _handle_reset
 
-handle_reset:		@ address of first instruction in slice!
+_handle_reset:		@ address of first instruction in slice!
 
 @ Disable interrupts
 mrs	r0, cpsr
@@ -167,10 +167,10 @@ orr	r1, r0, #SVC_MODE
 msr	cpsr_c, r1	@ switch to SVC mode
 
 @ Copy the vector table from .text to its home at 0x0. The following
-@ instructions copy the 16 words starting at the label `vectors' into the
+@ instructions copy the 16 words starting at the label `_vectors' into the
 @ first 16 words in memory. As explained above, the first 8 words are the
 @ vectors and the second 8 words are the addresses of the handlers.
-ldr	r0, =vectors	@ address of vector table (in .text)
+ldr	r0, =_vectors	@ address of vector table (in .text)
 mov	r1, #0		@ address to which we will copy vector table (0x0)
 ldmia	r0!, {r2-r9}	@ load all vectors
 stmia	r1!, {r2-r9}	@ copy all vectors
@@ -197,52 +197,52 @@ b	slice_main
 
 .section .text
 
-.globl handle_undefined
+.globl _handle_undefined
 
-handle_undefined:
+_handle_undefined:
 stmfd	sp!, {r0-r3, lr}	@ save context
 bl	service_undefined	@ branch to service routine
 ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
-.globl handle_software_int
+.globl _handle_software_int
 
-handle_software_int:
+_handle_software_int:
 stmfd	sp!, {r0-r3, lr}	@ save context
 bl	service_software_int	@ branch to service routine
 ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
-.globl handle_prefetch_abort
+.globl _handle_prefetch_abort
 
-handle_prefetch_abort:
+_handle_prefetch_abort:
 sub	lr, lr, #4		@ adjust link register
 stmfd	sp!, {r0-r3, lr}	@ save context
 bl	service_prefetch_abort	@ branch to service routine
 ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
-.globl handle_data_abort
+.globl _handle_data_abort
 
-handle_data_abort:
+_handle_data_abort:
 sub	lr, lr, #8		@ adjust link register
 stmfd	sp!, {r0-r3, lr}	@ save context
 bl	service_data_abort	@ branch to service routine
 ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
-.globl handle_unused
+.globl _handle_unused
 
-handle_unused:
+_handle_unused:
 mov	pc, lr
 
-.globl handle_irq
+.globl _handle_irq
 
-handle_irq:
+_handle_irq:
 sub	lr, lr, #4		@ adjust link register
 stmfd	sp!, {r0-r3, lr}	@ save context
-bl	service_irq		@ branch to service routine
+bl	handle_irq		@ branch to IRQ handler
 ldmfd	sp!, {r0-r3, pc}^	@ restore context, CPSR and return
 
-.globl handle_fiq
+.globl _handle_fiq
 
-handle_fiq:
+_handle_fiq:
 sub	lr, lr, #4		@ adjust link register
 stmfd	sp!, {r0-r3, lr}	@ save context
 bl	service_fiq		@ branch to service routine
