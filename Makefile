@@ -9,7 +9,8 @@
 #
 
 #~==== source tree layout ===============================================~#
-ROOT = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+#ROOT = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+ROOT = .
 
 SRC = $(ROOT)/src
 INC = $(ROOT)/include
@@ -27,7 +28,7 @@ ARMCFLAGS = -I$(INC) -ffreestanding -nostartfiles -DLOGGING=INFO
 LIBGCC = $(ARMDIR)/lib/gcc/arm-bcm2708-linux-gnueabi/4.7.1/libgcc.a
 
 ARMAS = $(ARM)-as
-ARMASFLAGS =
+ARMASFLAGS = --warn
 
 ARMLD = $(ARM)-ld
 ARMLDFLAGS = --no-undefined --fatal-warnings

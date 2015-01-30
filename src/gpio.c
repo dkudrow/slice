@@ -18,7 +18,7 @@
 #include <platform.h>
 #include <util.h>
 
-static volatile gpio_reg_t *gpio = GPIO_BASE;
+static volatile gpio_reg_t *gpio_reg = (gpio_reg_t *)GPIO_BASE;
 
 #define GPIO_MAX_PIN	53
 #define GPIO_MAX_FUNC	7
@@ -44,7 +44,7 @@ int gpio_function_select(unsigned pin, unsigned function)
 
 	/* read the register from memory */
 	/*reg = READ4(GPIO_FSEL + bank);*/
-	reg = gpio->func_select[bank];
+	reg = gpio_reg->func_select[bank];
 
 	/* reset the function */
 	reg &= ~(7 << offset);
@@ -52,7 +52,7 @@ int gpio_function_select(unsigned pin, unsigned function)
 
 	/* write back to memory */
 	/*WRITE4(GPIO_FSEL + bank, reg);*/
-	gpio->func_select[bank] = reg;
+	gpio_reg->func_select[bank] = reg;
 
 	return 0;
 }
@@ -74,7 +74,7 @@ int gpio_set(unsigned pin)
 
 	/* write the correct bit in memory */
 	/*WRITE4(GPIO_SET + bank, 1 << offset);*/
-	gpio->set[bank] = 1 << offset;
+	gpio_reg->set[bank] = 1 << offset;
 
 	return 0;
 }
@@ -96,7 +96,7 @@ int gpio_clear(unsigned pin)
 
 	/* write the correct bit in memory */
 	/*WRITE4(GPIO_CLR + bank, 1 << offset);*/
-	gpio->clear[bank] = 1 << offset;
+	gpio_reg->clear[bank] = 1 << offset;
 
 	return 0;
 }

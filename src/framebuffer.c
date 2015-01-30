@@ -53,7 +53,7 @@
 /*
  * Framebuffer initialization data
  */
-struct fb_info_t {
+volatile struct __attribute__ ((aligned (16))) {
 	uint32_t width;
 	uint32_t height;
 	uint32_t virt_width;
@@ -64,7 +64,7 @@ struct fb_info_t {
 	uint32_t y_offset;
 	uint32_t fb_base_addr;		/* filled by GPU */
 	uint32_t screen_size;		/* filled by GPU */
-} __attribute__ ((aligned (16))) fb_info;
+} fb_info;
 
 /*
  * Query the VideoCore for the framebuffer
@@ -127,7 +127,7 @@ int fb_border()
 {
 	int i;
 	pixel_t color = 0xFFFF;
-	pixel_t *addr = fb_info.fb_base_addr;
+	pixel_t *addr = (pixel_t *)fb_info.fb_base_addr;
 
 	for (i=0; i<fb_info.width; i++) {
 		/**((unsigned short *)addr + i) = color;*/

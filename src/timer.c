@@ -38,7 +38,7 @@
 #include <platform.h>
 #include <util.h>
 
-static volatile timer_reg_t *timer = TIMER_BASE;
+static volatile timer_reg_t *timer_reg = (timer_reg_t *)TIMER_BASE;
 
 /*
  * get the current count
@@ -47,7 +47,7 @@ unsigned timer_read()
 {
 	/* read the low 32 bits from the system clock register */
 	/*return READ4(TIMER_CNTLO);*/
-	return timer->count_lo;
+	return timer_reg->count_lo;
 }
 
 /*
@@ -59,11 +59,11 @@ void timer_wait(unsigned ticks)
 
 	/* get the start count */
 	/*start = READ4(TIMER_CNTLO);*/
-	start = timer->count_lo;
+	start = timer_reg->count_lo;
 
 	/* wait the specified number of ticks */
 	do {
 		/*current = READ4(TIMER_CNTLO);*/
-		current = timer->count_lo;
+		current = timer_reg->count_lo;
 	} while (current - start < ticks);
 }

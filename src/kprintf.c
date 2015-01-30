@@ -45,18 +45,6 @@ static void format_int(int base, unsigned uval)
 	} while (i);
 }
 
-void kprintf(char *format_str, ...)
-{
-	va_list arg_list;
-
-	/* get the format string arguments */
-	va_start(arg_list, format_str);
-
-	kvprintf(format_str, arg_list);
-
-	va_end(arg_list);
-}
-
 /*
  * Formatted printing for the kernel
  */
@@ -121,3 +109,16 @@ void kvprintf(char *format_str, va_list arg_list)
 		++s;
 	}
 }
+
+void kprintf(char *format_str, ...)
+{
+	va_list arg_list;
+
+	/* get the format string arguments */
+	va_start(arg_list, format_str);
+
+	kvprintf(format_str, arg_list);
+
+	va_end(arg_list);
+}
+
